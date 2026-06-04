@@ -9,38 +9,234 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as ReportsRouteImport } from './routes/reports'
+import { Route as MentorsRouteImport } from './routes/mentors'
+import { Route as MediaRouteImport } from './routes/media'
+import { Route as InteractionsRouteImport } from './routes/interactions'
+import { Route as IntelligenceRouteImport } from './routes/intelligence'
+import { Route as GoalkeepersRouteImport } from './routes/goalkeepers'
+import { Route as ExecutiveRouteImport } from './routes/executive'
+import { Route as CalendarRouteImport } from './routes/calendar'
+import { Route as AlertsRouteImport } from './routes/alerts'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as GoalkeepersGkIdRouteImport } from './routes/goalkeepers.$gkId'
 
+const ReportsRoute = ReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MentorsRoute = MentorsRouteImport.update({
+  id: '/mentors',
+  path: '/mentors',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MediaRoute = MediaRouteImport.update({
+  id: '/media',
+  path: '/media',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InteractionsRoute = InteractionsRouteImport.update({
+  id: '/interactions',
+  path: '/interactions',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IntelligenceRoute = IntelligenceRouteImport.update({
+  id: '/intelligence',
+  path: '/intelligence',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GoalkeepersRoute = GoalkeepersRouteImport.update({
+  id: '/goalkeepers',
+  path: '/goalkeepers',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ExecutiveRoute = ExecutiveRouteImport.update({
+  id: '/executive',
+  path: '/executive',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CalendarRoute = CalendarRouteImport.update({
+  id: '/calendar',
+  path: '/calendar',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AlertsRoute = AlertsRouteImport.update({
+  id: '/alerts',
+  path: '/alerts',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const GoalkeepersGkIdRoute = GoalkeepersGkIdRouteImport.update({
+  id: '/$gkId',
+  path: '/$gkId',
+  getParentRoute: () => GoalkeepersRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/alerts': typeof AlertsRoute
+  '/calendar': typeof CalendarRoute
+  '/executive': typeof ExecutiveRoute
+  '/goalkeepers': typeof GoalkeepersRouteWithChildren
+  '/intelligence': typeof IntelligenceRoute
+  '/interactions': typeof InteractionsRoute
+  '/media': typeof MediaRoute
+  '/mentors': typeof MentorsRoute
+  '/reports': typeof ReportsRoute
+  '/goalkeepers/$gkId': typeof GoalkeepersGkIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/alerts': typeof AlertsRoute
+  '/calendar': typeof CalendarRoute
+  '/executive': typeof ExecutiveRoute
+  '/goalkeepers': typeof GoalkeepersRouteWithChildren
+  '/intelligence': typeof IntelligenceRoute
+  '/interactions': typeof InteractionsRoute
+  '/media': typeof MediaRoute
+  '/mentors': typeof MentorsRoute
+  '/reports': typeof ReportsRoute
+  '/goalkeepers/$gkId': typeof GoalkeepersGkIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/alerts': typeof AlertsRoute
+  '/calendar': typeof CalendarRoute
+  '/executive': typeof ExecutiveRoute
+  '/goalkeepers': typeof GoalkeepersRouteWithChildren
+  '/intelligence': typeof IntelligenceRoute
+  '/interactions': typeof InteractionsRoute
+  '/media': typeof MediaRoute
+  '/mentors': typeof MentorsRoute
+  '/reports': typeof ReportsRoute
+  '/goalkeepers/$gkId': typeof GoalkeepersGkIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/alerts'
+    | '/calendar'
+    | '/executive'
+    | '/goalkeepers'
+    | '/intelligence'
+    | '/interactions'
+    | '/media'
+    | '/mentors'
+    | '/reports'
+    | '/goalkeepers/$gkId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/alerts'
+    | '/calendar'
+    | '/executive'
+    | '/goalkeepers'
+    | '/intelligence'
+    | '/interactions'
+    | '/media'
+    | '/mentors'
+    | '/reports'
+    | '/goalkeepers/$gkId'
+  id:
+    | '__root__'
+    | '/'
+    | '/alerts'
+    | '/calendar'
+    | '/executive'
+    | '/goalkeepers'
+    | '/intelligence'
+    | '/interactions'
+    | '/media'
+    | '/mentors'
+    | '/reports'
+    | '/goalkeepers/$gkId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AlertsRoute: typeof AlertsRoute
+  CalendarRoute: typeof CalendarRoute
+  ExecutiveRoute: typeof ExecutiveRoute
+  GoalkeepersRoute: typeof GoalkeepersRouteWithChildren
+  IntelligenceRoute: typeof IntelligenceRoute
+  InteractionsRoute: typeof InteractionsRoute
+  MediaRoute: typeof MediaRoute
+  MentorsRoute: typeof MentorsRoute
+  ReportsRoute: typeof ReportsRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/reports': {
+      id: '/reports'
+      path: '/reports'
+      fullPath: '/reports'
+      preLoaderRoute: typeof ReportsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/mentors': {
+      id: '/mentors'
+      path: '/mentors'
+      fullPath: '/mentors'
+      preLoaderRoute: typeof MentorsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/media': {
+      id: '/media'
+      path: '/media'
+      fullPath: '/media'
+      preLoaderRoute: typeof MediaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/interactions': {
+      id: '/interactions'
+      path: '/interactions'
+      fullPath: '/interactions'
+      preLoaderRoute: typeof InteractionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/intelligence': {
+      id: '/intelligence'
+      path: '/intelligence'
+      fullPath: '/intelligence'
+      preLoaderRoute: typeof IntelligenceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/goalkeepers': {
+      id: '/goalkeepers'
+      path: '/goalkeepers'
+      fullPath: '/goalkeepers'
+      preLoaderRoute: typeof GoalkeepersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/executive': {
+      id: '/executive'
+      path: '/executive'
+      fullPath: '/executive'
+      preLoaderRoute: typeof ExecutiveRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/calendar': {
+      id: '/calendar'
+      path: '/calendar'
+      fullPath: '/calendar'
+      preLoaderRoute: typeof CalendarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/alerts': {
+      id: '/alerts'
+      path: '/alerts'
+      fullPath: '/alerts'
+      preLoaderRoute: typeof AlertsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,12 +244,50 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/goalkeepers/$gkId': {
+      id: '/goalkeepers/$gkId'
+      path: '/$gkId'
+      fullPath: '/goalkeepers/$gkId'
+      preLoaderRoute: typeof GoalkeepersGkIdRouteImport
+      parentRoute: typeof GoalkeepersRoute
+    }
   }
 }
 
+interface GoalkeepersRouteChildren {
+  GoalkeepersGkIdRoute: typeof GoalkeepersGkIdRoute
+}
+
+const GoalkeepersRouteChildren: GoalkeepersRouteChildren = {
+  GoalkeepersGkIdRoute: GoalkeepersGkIdRoute,
+}
+
+const GoalkeepersRouteWithChildren = GoalkeepersRoute._addFileChildren(
+  GoalkeepersRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AlertsRoute: AlertsRoute,
+  CalendarRoute: CalendarRoute,
+  ExecutiveRoute: ExecutiveRoute,
+  GoalkeepersRoute: GoalkeepersRouteWithChildren,
+  IntelligenceRoute: IntelligenceRoute,
+  InteractionsRoute: InteractionsRoute,
+  MediaRoute: MediaRoute,
+  MentorsRoute: MentorsRoute,
+  ReportsRoute: ReportsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
