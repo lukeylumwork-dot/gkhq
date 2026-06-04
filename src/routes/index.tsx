@@ -2,18 +2,26 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { Card, PageHeader, StatCard, SectionTitle, Avatar, Pill, TierBadge } from "@/components/primitives";
 import { activity, alerts, goalkeepers, stats, formatRelative, getMentor } from "@/lib/mock-data";
 import { ArrowUpRight, AlertTriangle, CalendarClock, FileText, Users, UserCog } from "lucide-react";
+import { useAuth, ROLE_LABEL } from "@/lib/auth";
 
 export const Route = createFileRoute("/")({ component: Dashboard });
 
 function Dashboard() {
-  const upcoming = [...goalkeepers]
+  const { user } = useAuth();
+  const pool = user?.role === "mentor" && user.mentorId
+    ? goalkeepers.filter((g) => g.mentorId === user.mentorId)
+    : goalkeepers;
+  const upcoming = [...pool]
     .filter((g) => new Date(g.nextInteraction).getTime() >= Date.now())
     .sort((a, b) => +new Date(a.nextInteraction) - +new Date(b.nextInteraction))
     .slice(0, 6);
 
+  const greeting = `Good ${new Date().getHours() < 12 ? "morning" : new Date().getHours() < 18 ? "afternoon" : "evening"}, ${user?.name.split(" ")[0] ?? ""}`;
+
   return (
     <div className="space-y-6">
-      <PageHeader title="Operations Dashboard" description="Live overview of goalkeeper coverage, mentor activity, and outstanding actions." />
+      <PageHeader title={greeting} description={`${ROLE_LABEL[user!.role]} view · ${user?.role === "mentor" ? `${pool.length} assigned goalkeepers` : "Live overview of goalkeeper coverage and outstanding actions."}`} />
+
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
         <StatCard label="Total Goalkeepers" value={stats.totalGks} hint="Across all tiers" />
