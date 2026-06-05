@@ -63,7 +63,7 @@ function ReportDetail() {
             {Object.entries(r.scores).map(([k, v]) => (
               <li key={k} className="flex items-center justify-between">
                 <span className="capitalize text-muted-foreground">{k.replace(/([A-Z])/g, " $1")}</span>
-                <span className="font-semibold tabular-nums">{v}/10</span>
+                <span className="font-semibold tabular-nums">{String(v)}/10</span>
               </li>
             ))}
           </ul>
