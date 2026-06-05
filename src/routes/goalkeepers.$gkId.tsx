@@ -45,13 +45,32 @@ function GkDetail() {
         </div>
       </div>
 
+      {gk.bio && (
+        <Card className="p-4">
+          <SectionTitle>Profile</SectionTitle>
+          <p className="text-sm text-muted-foreground leading-relaxed">{gk.bio}</p>
+        </Card>
+      )}
+
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         <Card className="p-3"><div className="text-[10px] uppercase text-muted-foreground">Mentor</div><div className="text-sm font-medium mt-1">{mentor?.name}</div></Card>
         <Card className="p-3"><div className="text-[10px] uppercase text-muted-foreground">Rating</div><div className="text-xl font-semibold tabular-nums mt-1">{gk.rating}</div></Card>
         <Card className="p-3"><div className="text-[10px] uppercase text-muted-foreground">Potential</div><div className="text-xl font-semibold tabular-nums mt-1">{gk.potential}</div></Card>
         <Card className="p-3"><div className="text-[10px] uppercase text-muted-foreground">Contract</div><div className="text-sm font-medium mt-1">{gk.contractUntil}</div></Card>
-        <Card className="p-3"><div className="text-[10px] uppercase text-muted-foreground">Recommendation</div><div className="mt-1"><Pill tone={gk.recommendation === "Sign" ? "success" : gk.recommendation === "Pass" ? "destructive" : "info"}>{gk.recommendation}</Pill></div></Card>
+        <Card className="p-3"><div className="text-[10px] uppercase text-muted-foreground">Recommendation</div><div className="mt-1"><Pill tone={gk.recommendation === "Sign" || gk.recommendation === "Retain" ? "success" : gk.recommendation === "Pass" ? "destructive" : "info"}>{gk.recommendation}</Pill></div></Card>
       </div>
+
+      {gk.developmentPlan && gk.developmentPlan.length > 0 && (
+        <Card className="p-4">
+          <SectionTitle>Development Plan</SectionTitle>
+          <ul className="space-y-1.5">
+            {gk.developmentPlan.map((d, i) => (
+              <li key={i} className="flex gap-2 text-sm text-muted-foreground"><span className="text-primary mt-0.5">›</span>{d}</li>
+            ))}
+          </ul>
+        </Card>
+      )}
+
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <Card className="lg:col-span-2 p-4">
