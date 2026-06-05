@@ -5,7 +5,7 @@ import { useState } from "react";
 
 export const Route = createFileRoute("/interactions")({ component: InteractionsPage });
 
-const TYPES = ["All", "Live Match", "Training Observation", "Face to Face", "Video Review", "Phone Call", "WhatsApp", "Other"] as const;
+const TYPES = ["All", "Live Match Observation", "Training Ground Visit", "Face to Face", "Video Review Session", "Phone Call", "WhatsApp Feedback", "Development Meeting", "Scouting Assignment"] as const;
 
 function InteractionsPage() {
   const [type, setType] = useState<(typeof TYPES)[number]>("All");
