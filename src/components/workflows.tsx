@@ -7,6 +7,7 @@ import {
   updateMedia, listMedia, attachMediaToReport, RATING_TAG_OPTIONS,
   type MediaAsset, type MediaKind,
 } from "@/lib/media-store";
+import { HandwrittenNotesField } from "@/components/handwritten-notes-field";
 
 export type WorkflowKind = "interaction" | "report" | "media" | "goalkeeper";
 
