@@ -164,7 +164,7 @@ export async function logAudit(entry: {
       actor_id: entry.user?.id ?? null,
       actor_name: entry.user?.name ?? null,
       actor_role: entry.user?.role ?? null,
-      metadata: entry.metadata ?? {},
+      metadata: (entry.metadata ?? {}) as never,
     });
   } catch (e) {
     console.warn("audit log failed", e);
