@@ -30,7 +30,7 @@ export function AppShell() {
   const [bellOpen, setBellOpen] = useState(false);
   const [workflow, setWorkflow] = useState<WorkflowKind | null>(null);
   const bellRef = useRef<HTMLDivElement>(null);
-  const notif = user ? useNotifications() : null;
+  const notif = useNotifications();
 
   // Public routes that don't require auth
   const isPublic = path === "/login";
