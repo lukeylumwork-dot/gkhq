@@ -13,10 +13,15 @@ export interface SessionUser {
 }
 
 export const DEMO_USERS: SessionUser[] = [
-  { id: "u-admin", name: "Dani Mitchell", email: "dani@rpm.gk", role: "admin", initials: "DM", title: "Head of GK Operations" },
-  { id: "u-mentor", name: "Marco Romano", email: "marco@rpm.gk", role: "mentor", initials: "MR", title: "Senior GK Mentor", mentorId: "m1" },
-  { id: "u-scout", name: "Aaron Walsh", email: "aaron@rpm.gk", role: "scout", initials: "AW", title: "Lead Scout" },
-  { id: "u-director", name: "Henrik Lindqvist", email: "henrik@rpm.gk", role: "director", initials: "HL", title: "Director of Football" },
+  { id: "u-scott", name: "Scott Barron", email: "scott@rpmgk.com", role: "admin", initials: "SB", title: "Co-Founder & Director", mentorId: "m-scott" },
+  { id: "u-richard", name: "Richard Lee", email: "richard@rpmgk.com", role: "director", initials: "RL", title: "Co-Founder & Director", mentorId: "m-richard" },
+  { id: "u-sam", name: "Sam Winstanley", email: "sam@rpmgk.com", role: "director", initials: "SW", title: "Co-Founder & Director", mentorId: "m-sam" },
+  { id: "u-mark", name: "Mark Halsey", email: "mark.halsey@rpmgk.com", role: "mentor", initials: "MH", title: "Goalkeeper Mentor — North West", mentorId: "m-mark-h" },
+  { id: "u-dave", name: "David Timson", email: "dave.timson@rpmgk.com", role: "mentor", initials: "DT", title: "Goalkeeper Mentor — London & South", mentorId: "m-dave-t" },
+  { id: "u-luke", name: "Luke Steele", email: "luke.steele@rpmgk.com", role: "scout", initials: "LS", title: "Goalkeeper Intelligence Scout", mentorId: "m-luke-s" },
+  { id: "u-jon", name: "Jonathan Marshall", email: "jon.marshall@rpmgk.com", role: "scout", initials: "JM", title: "Recruitment Analyst", mentorId: "m-jon-m" },
+  { id: "u-emma", name: "Emma Wright", email: "emma.wright@rpmgk.com", role: "admin", initials: "EW", title: "Video Analyst", mentorId: "m-emma-w" },
+  { id: "u-claire", name: "Claire Hartley", email: "claire.hartley@rpmgk.com", role: "admin", initials: "CH", title: "Operations Manager", mentorId: "m-claire-h" },
 ];
 
 // Permission catalogue
