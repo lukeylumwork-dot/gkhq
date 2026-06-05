@@ -98,10 +98,11 @@ function Dashboard() {
         </Card>
 
         <Card className="p-4">
-          <SectionTitle>Tier Distribution</SectionTitle>
+          <SectionTitle>Status Distribution</SectionTitle>
           <div className="space-y-3">
             {stats.tierDistribution.map((t) => {
               const pct = Math.round((t.count / stats.totalGks) * 100);
+              const color = t.tier === "Elite" ? "bg-warning" : t.tier === "First Team" ? "bg-info" : t.tier === "Development" ? "bg-primary" : t.tier === "Free Agent" ? "bg-destructive" : "bg-tier-3";
               return (
                 <div key={t.tier}>
                   <div className="flex items-center justify-between text-xs mb-1.5">
@@ -109,7 +110,7 @@ function Dashboard() {
                     <span className="tabular-nums font-medium">{pct}%</span>
                   </div>
                   <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                    <div className={`h-full ${t.tier === "Tier 1" ? "bg-tier-1" : t.tier === "Tier 2" ? "bg-tier-2" : "bg-tier-3"}`} style={{ width: `${pct}%` }} />
+                    <div className={`h-full ${color}`} style={{ width: `${pct}%` }} />
                   </div>
                 </div>
               );
