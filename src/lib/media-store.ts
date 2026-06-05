@@ -350,8 +350,8 @@ export async function listReportAttachments(reportId: string): Promise<MediaAsse
     .select("media_id, media_assets:media_id(*)")
     .eq("report_id", reportId);
   if (error) throw new Error(error.message);
-  return (data || [])
-    .map((row: { media_assets: MediaAsset | null }) => row.media_assets)
+  return ((data || []) as Array<{ media_assets: unknown }>)
+    .map((row) => row.media_assets as MediaAsset | null)
     .filter((x): x is MediaAsset => !!x);
 }
 
