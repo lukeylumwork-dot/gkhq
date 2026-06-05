@@ -15,6 +15,7 @@ function GoalkeepersLayout() {
 function GoalkeepersList() {
   const [q, setQ] = useState("");
   const [cat, setCat] = useState<string>("All");
+  const [duty, setDuty] = useState<"all" | "green" | "amber" | "red">("all");
   const filtered = goalkeepers.filter((g) => {
     if (cat === "UK Based" && g.region !== "UK Based") return false;
     if (cat === "Overseas" && g.region !== "Overseas") return false;
