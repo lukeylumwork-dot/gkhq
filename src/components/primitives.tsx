@@ -39,16 +39,19 @@ export function StatCard({ label, value, hint, accent }: { label: string; value:
 
 export function TierBadge({ tier }: { tier: Tier }) {
   const styles: Record<Tier, string> = {
-    "Tier 1": "bg-tier-1/15 text-tier-1 border-tier-1/30",
-    "Tier 2": "bg-tier-2/15 text-tier-2 border-tier-2/30",
-    "Tier 3": "bg-tier-3/15 text-tier-3 border-tier-3/30",
+    "Elite": "bg-warning/15 text-warning border-warning/40",
+    "First Team": "bg-info/15 text-info border-info/30",
+    "Development": "bg-primary/15 text-primary border-primary/30",
+    "Prospect": "bg-tier-3/20 text-tier-3 border-tier-3/40",
+    "Free Agent": "bg-destructive/15 text-destructive border-destructive/30",
   };
   return (
-    <span className={cn("inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium border tabular-nums", styles[tier])}>
+    <span className={cn("inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium border whitespace-nowrap", styles[tier])}>
       {tier}
     </span>
   );
 }
+export const StatusBadge = TierBadge;
 
 export function Pill({ children, tone = "muted" }: { children: ReactNode; tone?: "muted" | "success" | "warning" | "destructive" | "info" }) {
   const t: Record<string, string> = {
