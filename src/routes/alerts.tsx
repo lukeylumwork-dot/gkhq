@@ -16,7 +16,10 @@ function AlertsPage() {
 
   return (
     <div className="space-y-5">
-      <PageHeader title="Alerts Engine" description="Conditions across the platform that need attention." />
+      <PageHeader title="Alerts Engine" description="Conditions across the platform that need attention, plus duty-of-care notifications and email summaries." />
+
+      <DutyNotificationsPanel />
+
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <StatCard label="Total Alerts" value={alerts.length} />
