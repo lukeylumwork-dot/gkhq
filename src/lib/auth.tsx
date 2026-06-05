@@ -33,10 +33,12 @@ export type Permission =
   | "reports.manage"
   | "media.view"
   | "media.upload"
+  | "media.edit"
   | "intelligence.view"
   | "alerts.view"
   | "calendar.view"
   | "executive.view"
+  | "audit.view"
   | "mentors.view";
 
 const MATRIX: Record<Role, Permission[]> = {
@@ -44,20 +46,22 @@ const MATRIX: Record<Role, Permission[]> = {
     "users.manage", "goalkeepers.view", "goalkeepers.edit", "goalkeepers.create",
     "mentors.assign", "mentors.view", "interactions.view", "interactions.log",
     "reports.view", "reports.submit", "reports.manage", "media.view", "media.upload",
-    "intelligence.view", "alerts.view", "calendar.view", "executive.view",
+    "media.edit", "intelligence.view", "alerts.view", "calendar.view", "executive.view",
+    "audit.view",
   ],
   mentor: [
     "goalkeepers.view", "interactions.view", "interactions.log",
-    "reports.view", "reports.submit", "media.view", "media.upload",
+    "reports.view", "reports.submit", "media.view", "media.upload", "media.edit",
     "alerts.view", "calendar.view", "intelligence.view",
   ],
   scout: [
     "goalkeepers.view", "goalkeepers.create", "reports.view", "reports.submit",
-    "media.view", "media.upload", "intelligence.view", "calendar.view",
+    "media.view", "media.upload", "media.edit", "intelligence.view", "calendar.view",
   ],
   director: [
     "goalkeepers.view", "mentors.view", "reports.view", "intelligence.view",
     "executive.view", "alerts.view", "calendar.view", "interactions.view",
+    "audit.view",
   ],
 };
 

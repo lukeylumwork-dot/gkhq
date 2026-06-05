@@ -24,7 +24,10 @@ export type Database = {
           media_type: string
           mime_type: string | null
           notes: string | null
+          rating_tags: string[]
+          thumbnail_path: string | null
           title: string
+          updated_at: string
           uploaded_by_id: string | null
           uploaded_by_name: string | null
           uploaded_by_role: string | null
@@ -38,7 +41,10 @@ export type Database = {
           media_type: string
           mime_type?: string | null
           notes?: string | null
+          rating_tags?: string[]
+          thumbnail_path?: string | null
           title: string
+          updated_at?: string
           uploaded_by_id?: string | null
           uploaded_by_name?: string | null
           uploaded_by_role?: string | null
@@ -52,12 +58,89 @@ export type Database = {
           media_type?: string
           mime_type?: string | null
           notes?: string | null
+          rating_tags?: string[]
+          thumbnail_path?: string | null
           title?: string
+          updated_at?: string
           uploaded_by_id?: string | null
           uploaded_by_name?: string | null
           uploaded_by_role?: string | null
         }
         Relationships: []
+      }
+      media_audit_log: {
+        Row: {
+          action: string
+          actor_id: string | null
+          actor_name: string | null
+          actor_role: string | null
+          created_at: string
+          gk_id: string | null
+          id: string
+          media_id: string | null
+          media_title: string | null
+          metadata: Json
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          actor_name?: string | null
+          actor_role?: string | null
+          created_at?: string
+          gk_id?: string | null
+          id?: string
+          media_id?: string | null
+          media_title?: string | null
+          metadata?: Json
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          actor_name?: string | null
+          actor_role?: string | null
+          created_at?: string
+          gk_id?: string | null
+          id?: string
+          media_id?: string | null
+          media_title?: string | null
+          metadata?: Json
+        }
+        Relationships: []
+      }
+      report_attachments: {
+        Row: {
+          attached_by_id: string | null
+          attached_by_name: string | null
+          created_at: string
+          id: string
+          media_id: string
+          report_id: string
+        }
+        Insert: {
+          attached_by_id?: string | null
+          attached_by_name?: string | null
+          created_at?: string
+          id?: string
+          media_id: string
+          report_id: string
+        }
+        Update: {
+          attached_by_id?: string | null
+          attached_by_name?: string | null
+          created_at?: string
+          id?: string
+          media_id?: string
+          report_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "report_attachments_media_id_fkey"
+            columns: ["media_id"]
+            isOneToOne: false
+            referencedRelation: "media_assets"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

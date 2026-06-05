@@ -1,5 +1,5 @@
 import { Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, Users, UserCog, MessageSquare, FileText, Database, FolderOpen, BellRing, Calendar, BarChart3, Search, Plus, LogOut, ChevronDown, ShieldCheck } from "lucide-react";
+import { LayoutDashboard, Users, UserCog, MessageSquare, FileText, Database, FolderOpen, BellRing, Calendar, BarChart3, Search, Plus, LogOut, ChevronDown, ShieldCheck, History } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth, ROLE_LABEL, type Permission } from "@/lib/auth";
 import { useEffect, useState } from "react";
@@ -14,6 +14,7 @@ const NAV: NavItem[] = [
   { to: "/reports", label: "Reports", icon: FileText, perm: "reports.view" },
   { to: "/intelligence", label: "Intelligence", icon: Database, perm: "intelligence.view" },
   { to: "/media", label: "Media Library", icon: FolderOpen, perm: "media.view" },
+  { to: "/audit", label: "Audit Log", icon: History, perm: "audit.view" },
   { to: "/alerts", label: "Alerts", icon: BellRing, perm: "alerts.view" },
   { to: "/calendar", label: "Calendar", icon: Calendar, perm: "calendar.view" },
   { to: "/executive", label: "Executive", icon: BarChart3, perm: "executive.view" },

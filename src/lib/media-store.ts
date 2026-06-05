@@ -12,13 +12,38 @@ export interface MediaAsset {
   mime_type: string | null;
   file_path: string;
   file_size: number | null;
+  thumbnail_path: string | null;
+  rating_tags: string[];
   uploaded_by_id: string | null;
   uploaded_by_name: string | null;
   uploaded_by_role: string | null;
   created_at: string;
+  updated_at: string;
 }
 
-export const MAX_FILE_BYTES = 200 * 1024 * 1024; // 200MB
+export interface MediaAuditEntry {
+  id: string;
+  created_at: string;
+  action: "upload" | "open" | "edit" | "delete" | string;
+  media_id: string | null;
+  media_title: string | null;
+  gk_id: string | null;
+  actor_id: string | null;
+  actor_name: string | null;
+  actor_role: string | null;
+  metadata: Record<string, unknown>;
+}
+
+export interface ReportAttachment {
+  id: string;
+  report_id: string;
+  media_id: string;
+  created_at: string;
+  attached_by_id: string | null;
+  attached_by_name: string | null;
+}
+
+export const MAX_FILE_BYTES = 200 * 1024 * 1024;
 export const BUCKET = "gk-media";
 
 export const ACCEPT_BY_KIND: Record<MediaKind, string> = {
@@ -27,6 +52,19 @@ export const ACCEPT_BY_KIND: Record<MediaKind, string> = {
   image: "image/jpeg,image/png,image/webp,image/gif",
   audio: "audio/mpeg,audio/mp4,audio/wav,audio/webm,audio/x-m4a,audio/aac",
 };
+
+export const RATING_TAG_OPTIONS = [
+  "Highlight",
+  "Coaching point",
+  "Strength",
+  "Weakness",
+  "Match-winning",
+  "Set piece",
+  "Distribution",
+  "1v1",
+  "Aerial",
+  "Review priority",
+] as const;
 
 export function detectKind(file: File): MediaKind | null {
   const t = file.type;
@@ -49,15 +87,112 @@ function sanitizeName(name: string) {
   return name.replace(/[^a-zA-Z0-9._-]+/g, "_").slice(0, 80);
 }
 
+// ---------- Thumbnail generation ----------
+
+async function canvasToBlob(canvas: HTMLCanvasElement, quality = 0.72): Promise<Blob | null> {
+  return new Promise((resolve) => canvas.toBlob((b) => resolve(b), "image/jpeg", quality));
+}
+
+function drawScaled(source: CanvasImageSource, sw: number, sh: number, max = 640): HTMLCanvasElement {
+  const scale = Math.min(1, max / Math.max(sw, sh));
+  const w = Math.max(1, Math.round(sw * scale));
+  const h = Math.max(1, Math.round(sh * scale));
+  const c = document.createElement("canvas");
+  c.width = w; c.height = h;
+  const ctx = c.getContext("2d")!;
+  ctx.drawImage(source, 0, 0, w, h);
+  return c;
+}
+
+async function imageThumb(file: File): Promise<Blob | null> {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await new Promise<HTMLImageElement>((res, rej) => {
+      const i = new Image();
+      i.onload = () => res(i);
+      i.onerror = () => rej(new Error("image load failed"));
+      i.src = url;
+    });
+    return await canvasToBlob(drawScaled(img, img.naturalWidth, img.naturalHeight));
+  } catch { return null; }
+  finally { URL.revokeObjectURL(url); }
+}
+
+async function videoThumb(file: File): Promise<Blob | null> {
+  const url = URL.createObjectURL(file);
+  try {
+    const video = document.createElement("video");
+    video.preload = "auto";
+    video.muted = true;
+    video.playsInline = true;
+    video.src = url;
+    await new Promise<void>((res, rej) => {
+      video.onloadedmetadata = () => res();
+      video.onerror = () => rej(new Error("video metadata failed"));
+    });
+    const seekTo = Math.min(1.2, Math.max(0, (video.duration || 2) * 0.1));
+    await new Promise<void>((res, rej) => {
+      video.onseeked = () => res();
+      video.onerror = () => rej(new Error("video seek failed"));
+      try { video.currentTime = seekTo; } catch (e) { rej(e as Error); }
+    });
+    return await canvasToBlob(drawScaled(video, video.videoWidth, video.videoHeight));
+  } catch { return null; }
+  finally { URL.revokeObjectURL(url); }
+}
+
+async function generateThumbnail(file: File, kind: MediaKind): Promise<Blob | null> {
+  if (kind === "image") return imageThumb(file);
+  if (kind === "video") return videoThumb(file);
+  return null; // pdf & audio use icon/waveform placeholder cards
+}
+
+// ---------- Audit log ----------
+
+export async function logAudit(entry: {
+  action: MediaAuditEntry["action"];
+  asset?: Pick<MediaAsset, "id" | "title" | "gk_id"> | null;
+  user: SessionUser | null;
+  metadata?: Record<string, unknown>;
+}) {
+  try {
+    await supabase.from("media_audit_log").insert({
+      action: entry.action,
+      media_id: entry.asset?.id ?? null,
+      media_title: entry.asset?.title ?? null,
+      gk_id: entry.asset?.gk_id ?? null,
+      actor_id: entry.user?.id ?? null,
+      actor_name: entry.user?.name ?? null,
+      actor_role: entry.user?.role ?? null,
+      metadata: (entry.metadata ?? {}) as never,
+    });
+  } catch (e) {
+    console.warn("audit log failed", e);
+  }
+}
+
+export async function listAuditLog(limit = 200): Promise<MediaAuditEntry[]> {
+  const { data, error } = await supabase
+    .from("media_audit_log")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) throw new Error(error.message);
+  return (data || []) as MediaAuditEntry[];
+}
+
+// ---------- Upload / list / signed URLs ----------
+
 export async function uploadMedia(opts: {
   file: File;
   gkId: string;
   title: string;
   notes?: string;
   kind: MediaKind;
+  ratingTags?: string[];
   user: SessionUser;
 }): Promise<MediaAsset> {
-  const { file, gkId, title, notes, kind, user } = opts;
+  const { file, gkId, title, notes, kind, ratingTags, user } = opts;
 
   if (file.size > MAX_FILE_BYTES) {
     throw new Error("File exceeds the 200MB upload limit.");
@@ -70,6 +205,19 @@ export async function uploadMedia(opts: {
     .upload(path, file, { contentType: file.type || undefined, upsert: false });
   if (upErr) throw new Error(`Upload failed: ${upErr.message}`);
 
+  // Best-effort thumbnail
+  let thumbPath: string | null = null;
+  try {
+    const thumb = await generateThumbnail(file, kind);
+    if (thumb) {
+      thumbPath = `${gkId}/thumbs/${crypto.randomUUID()}.jpg`;
+      const { error: tErr } = await supabase.storage.from(BUCKET).upload(thumbPath, thumb, {
+        contentType: "image/jpeg", upsert: false,
+      });
+      if (tErr) thumbPath = null;
+    }
+  } catch { thumbPath = null; }
+
   const { data, error: dbErr } = await supabase
     .from("media_assets")
     .insert({
@@ -80,6 +228,8 @@ export async function uploadMedia(opts: {
       mime_type: file.type || null,
       file_path: path,
       file_size: file.size,
+      thumbnail_path: thumbPath,
+      rating_tags: ratingTags ?? [],
       uploaded_by_id: user.id,
       uploaded_by_name: user.name,
       uploaded_by_role: user.role,
@@ -88,17 +238,44 @@ export async function uploadMedia(opts: {
     .single();
 
   if (dbErr) {
-    // Best-effort cleanup
-    await supabase.storage.from(BUCKET).remove([path]);
+    await supabase.storage.from(BUCKET).remove([path, ...(thumbPath ? [thumbPath] : [])]);
     throw new Error(`Could not save media record: ${dbErr.message}`);
   }
-  return data as MediaAsset;
+  const asset = data as MediaAsset;
+  await logAudit({ action: "upload", asset, user, metadata: { size: file.size, kind } });
+  return asset;
 }
 
-export async function listMedia(gkId?: string): Promise<MediaAsset[]> {
+export interface MediaFilters {
+  kind?: MediaKind | "all";
+  gkId?: string;
+  uploaderId?: string;
+  from?: string; // ISO date
+  to?: string;   // ISO date
+  tags?: string[];
+  search?: string;
+}
+
+export async function listMedia(filters: MediaFilters = {}): Promise<MediaAsset[]> {
   let q = supabase.from("media_assets").select("*").order("created_at", { ascending: false });
-  if (gkId) q = q.eq("gk_id", gkId);
+  if (filters.kind && filters.kind !== "all") q = q.eq("media_type", filters.kind);
+  if (filters.gkId) q = q.eq("gk_id", filters.gkId);
+  if (filters.uploaderId) q = q.eq("uploaded_by_id", filters.uploaderId);
+  if (filters.from) q = q.gte("created_at", filters.from);
+  if (filters.to) q = q.lte("created_at", filters.to);
+  if (filters.tags && filters.tags.length) q = q.overlaps("rating_tags", filters.tags);
+  if (filters.search && filters.search.trim()) {
+    const s = filters.search.trim().replace(/[%,]/g, " ");
+    q = q.or(`title.ilike.%${s}%,notes.ilike.%${s}%`);
+  }
   const { data, error } = await q;
+  if (error) throw new Error(error.message);
+  return (data || []) as MediaAsset[];
+}
+
+export async function getMediaByIds(ids: string[]): Promise<MediaAsset[]> {
+  if (!ids.length) return [];
+  const { data, error } = await supabase.from("media_assets").select("*").in("id", ids);
   if (error) throw new Error(error.message);
   return (data || []) as MediaAsset[];
 }
@@ -109,8 +286,98 @@ export async function getSignedUrl(path: string, expiresIn = 3600): Promise<stri
   return data.signedUrl;
 }
 
-export async function deleteMedia(asset: MediaAsset): Promise<void> {
-  await supabase.storage.from(BUCKET).remove([asset.file_path]);
+export async function openAsset(asset: MediaAsset, user: SessionUser | null) {
+  const url = await getSignedUrl(asset.file_path);
+  await logAudit({ action: "open", asset, user });
+  window.open(url, "_blank", "noopener,noreferrer");
+}
+
+export async function updateMedia(
+  id: string,
+  patch: Partial<Pick<MediaAsset, "title" | "notes" | "media_type" | "gk_id" | "rating_tags">>,
+  user: SessionUser | null,
+  before?: MediaAsset,
+): Promise<MediaAsset> {
+  const { data, error } = await supabase
+    .from("media_assets")
+    .update(patch)
+    .eq("id", id)
+    .select("*")
+    .single();
+  if (error) throw new Error(error.message);
+  const asset = data as MediaAsset;
+  const changes: Record<string, { from: unknown; to: unknown }> = {};
+  if (before) {
+    (Object.keys(patch) as (keyof typeof patch)[]).forEach((k) => {
+      if (JSON.stringify(before[k]) !== JSON.stringify((asset as MediaAsset)[k])) {
+        changes[k as string] = { from: before[k] as unknown, to: (asset as MediaAsset)[k] as unknown };
+      }
+    });
+  }
+  await logAudit({ action: "edit", asset, user, metadata: { changes } });
+  return asset;
+}
+
+export async function deleteMedia(asset: MediaAsset, user: SessionUser | null): Promise<void> {
+  const paths = [asset.file_path, ...(asset.thumbnail_path ? [asset.thumbnail_path] : [])];
+  await supabase.storage.from(BUCKET).remove(paths);
   const { error } = await supabase.from("media_assets").delete().eq("id", asset.id);
+  if (error) throw new Error(error.message);
+  await logAudit({ action: "delete", asset, user });
+}
+
+// ---------- Permission helpers ----------
+
+export function canEditAsset(asset: MediaAsset, user: SessionUser | null): boolean {
+  if (!user) return false;
+  if (user.role === "admin") return true;
+  if (user.role === "director") return false;
+  if (asset.uploaded_by_id && asset.uploaded_by_id === user.id) return true;
+  return false;
+}
+
+export function canDeleteAsset(asset: MediaAsset, user: SessionUser | null): boolean {
+  if (!user) return false;
+  if (user.role === "admin") return true;
+  return !!asset.uploaded_by_id && asset.uploaded_by_id === user.id;
+}
+
+// ---------- Report attachments ----------
+
+export async function listReportAttachments(reportId: string): Promise<MediaAsset[]> {
+  const { data, error } = await supabase
+    .from("report_attachments")
+    .select("media_id, media_assets:media_id(*)")
+    .eq("report_id", reportId);
+  if (error) throw new Error(error.message);
+  return ((data || []) as Array<{ media_assets: unknown }>)
+    .map((row) => row.media_assets as MediaAsset | null)
+    .filter((x): x is MediaAsset => !!x);
+}
+
+export async function attachMediaToReport(
+  reportId: string,
+  mediaIds: string[],
+  user: SessionUser | null,
+): Promise<void> {
+  if (!mediaIds.length) return;
+  const rows = mediaIds.map((media_id) => ({
+    report_id: reportId,
+    media_id,
+    attached_by_id: user?.id ?? null,
+    attached_by_name: user?.name ?? null,
+  }));
+  const { error } = await supabase
+    .from("report_attachments")
+    .upsert(rows, { onConflict: "report_id,media_id", ignoreDuplicates: true });
+  if (error) throw new Error(error.message);
+}
+
+export async function detachMediaFromReport(reportId: string, mediaId: string): Promise<void> {
+  const { error } = await supabase
+    .from("report_attachments")
+    .delete()
+    .eq("report_id", reportId)
+    .eq("media_id", mediaId);
   if (error) throw new Error(error.message);
 }

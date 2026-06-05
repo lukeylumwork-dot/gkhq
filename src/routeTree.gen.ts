@@ -18,8 +18,10 @@ import { Route as IntelligenceRouteImport } from './routes/intelligence'
 import { Route as GoalkeepersRouteImport } from './routes/goalkeepers'
 import { Route as ExecutiveRouteImport } from './routes/executive'
 import { Route as CalendarRouteImport } from './routes/calendar'
+import { Route as AuditRouteImport } from './routes/audit'
 import { Route as AlertsRouteImport } from './routes/alerts'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ReportsReportIdRouteImport } from './routes/reports.$reportId'
 import { Route as GoalkeepersGkIdRouteImport } from './routes/goalkeepers.$gkId'
 
 const ReportsRoute = ReportsRouteImport.update({
@@ -67,6 +69,11 @@ const CalendarRoute = CalendarRouteImport.update({
   path: '/calendar',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuditRoute = AuditRouteImport.update({
+  id: '/audit',
+  path: '/audit',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AlertsRoute = AlertsRouteImport.update({
   id: '/alerts',
   path: '/alerts',
@@ -77,6 +84,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ReportsReportIdRoute = ReportsReportIdRouteImport.update({
+  id: '/$reportId',
+  path: '/$reportId',
+  getParentRoute: () => ReportsRoute,
+} as any)
 const GoalkeepersGkIdRoute = GoalkeepersGkIdRouteImport.update({
   id: '/$gkId',
   path: '/$gkId',
@@ -86,6 +98,7 @@ const GoalkeepersGkIdRoute = GoalkeepersGkIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/alerts': typeof AlertsRoute
+  '/audit': typeof AuditRoute
   '/calendar': typeof CalendarRoute
   '/executive': typeof ExecutiveRoute
   '/goalkeepers': typeof GoalkeepersRouteWithChildren
@@ -94,12 +107,14 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/media': typeof MediaRoute
   '/mentors': typeof MentorsRoute
-  '/reports': typeof ReportsRoute
+  '/reports': typeof ReportsRouteWithChildren
   '/goalkeepers/$gkId': typeof GoalkeepersGkIdRoute
+  '/reports/$reportId': typeof ReportsReportIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/alerts': typeof AlertsRoute
+  '/audit': typeof AuditRoute
   '/calendar': typeof CalendarRoute
   '/executive': typeof ExecutiveRoute
   '/goalkeepers': typeof GoalkeepersRouteWithChildren
@@ -108,13 +123,15 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/media': typeof MediaRoute
   '/mentors': typeof MentorsRoute
-  '/reports': typeof ReportsRoute
+  '/reports': typeof ReportsRouteWithChildren
   '/goalkeepers/$gkId': typeof GoalkeepersGkIdRoute
+  '/reports/$reportId': typeof ReportsReportIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/alerts': typeof AlertsRoute
+  '/audit': typeof AuditRoute
   '/calendar': typeof CalendarRoute
   '/executive': typeof ExecutiveRoute
   '/goalkeepers': typeof GoalkeepersRouteWithChildren
@@ -123,14 +140,16 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/media': typeof MediaRoute
   '/mentors': typeof MentorsRoute
-  '/reports': typeof ReportsRoute
+  '/reports': typeof ReportsRouteWithChildren
   '/goalkeepers/$gkId': typeof GoalkeepersGkIdRoute
+  '/reports/$reportId': typeof ReportsReportIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
     | '/alerts'
+    | '/audit'
     | '/calendar'
     | '/executive'
     | '/goalkeepers'
@@ -141,10 +160,12 @@ export interface FileRouteTypes {
     | '/mentors'
     | '/reports'
     | '/goalkeepers/$gkId'
+    | '/reports/$reportId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/alerts'
+    | '/audit'
     | '/calendar'
     | '/executive'
     | '/goalkeepers'
@@ -155,10 +176,12 @@ export interface FileRouteTypes {
     | '/mentors'
     | '/reports'
     | '/goalkeepers/$gkId'
+    | '/reports/$reportId'
   id:
     | '__root__'
     | '/'
     | '/alerts'
+    | '/audit'
     | '/calendar'
     | '/executive'
     | '/goalkeepers'
@@ -169,11 +192,13 @@ export interface FileRouteTypes {
     | '/mentors'
     | '/reports'
     | '/goalkeepers/$gkId'
+    | '/reports/$reportId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AlertsRoute: typeof AlertsRoute
+  AuditRoute: typeof AuditRoute
   CalendarRoute: typeof CalendarRoute
   ExecutiveRoute: typeof ExecutiveRoute
   GoalkeepersRoute: typeof GoalkeepersRouteWithChildren
@@ -182,7 +207,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   MediaRoute: typeof MediaRoute
   MentorsRoute: typeof MentorsRoute
-  ReportsRoute: typeof ReportsRoute
+  ReportsRoute: typeof ReportsRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
@@ -250,6 +275,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CalendarRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/audit': {
+      id: '/audit'
+      path: '/audit'
+      fullPath: '/audit'
+      preLoaderRoute: typeof AuditRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/alerts': {
       id: '/alerts'
       path: '/alerts'
@@ -263,6 +295,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/reports/$reportId': {
+      id: '/reports/$reportId'
+      path: '/$reportId'
+      fullPath: '/reports/$reportId'
+      preLoaderRoute: typeof ReportsReportIdRouteImport
+      parentRoute: typeof ReportsRoute
     }
     '/goalkeepers/$gkId': {
       id: '/goalkeepers/$gkId'
@@ -286,9 +325,21 @@ const GoalkeepersRouteWithChildren = GoalkeepersRoute._addFileChildren(
   GoalkeepersRouteChildren,
 )
 
+interface ReportsRouteChildren {
+  ReportsReportIdRoute: typeof ReportsReportIdRoute
+}
+
+const ReportsRouteChildren: ReportsRouteChildren = {
+  ReportsReportIdRoute: ReportsReportIdRoute,
+}
+
+const ReportsRouteWithChildren =
+  ReportsRoute._addFileChildren(ReportsRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AlertsRoute: AlertsRoute,
+  AuditRoute: AuditRoute,
   CalendarRoute: CalendarRoute,
   ExecutiveRoute: ExecutiveRoute,
   GoalkeepersRoute: GoalkeepersRouteWithChildren,
@@ -297,7 +348,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   MediaRoute: MediaRoute,
   MentorsRoute: MentorsRoute,
-  ReportsRoute: ReportsRoute,
+  ReportsRoute: ReportsRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
