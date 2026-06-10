@@ -1,4 +1,5 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useEffect } from "react";
 import { Card, PageHeader, StatCard, SectionTitle, Avatar, Pill, TierBadge, TrafficLight } from "@/components/primitives";
 import { activity, alerts, goalkeepers, stats, formatRelative, getMentor, dutyOverview, dutyStatusForGk } from "@/lib/mock-data";
 import { ArrowUpRight, AlertTriangle, CalendarClock, FileText, Users, UserCog } from "lucide-react";
@@ -8,7 +9,15 @@ export const Route = createFileRoute("/")({ component: Dashboard });
 
 function Dashboard() {
   const { user } = useAuth();
-  const pool = user?.role === "mentor" && user.mentorId
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!user) navigate({ to: "/login", replace: true });
+  }, [user, navigate]);
+
+  if (!user) return null;
+
+  const pool = user.role === "mentor" && user.mentorId
     ? goalkeepers.filter((g) => g.mentorId === user.mentorId)
     : goalkeepers;
   const upcoming = [...pool]
@@ -16,11 +25,11 @@ function Dashboard() {
     .sort((a, b) => +new Date(a.nextInteraction) - +new Date(b.nextInteraction))
     .slice(0, 6);
 
-  const greeting = `Good ${new Date().getHours() < 12 ? "morning" : new Date().getHours() < 18 ? "afternoon" : "evening"}, ${user?.name.split(" ")[0] ?? ""}`;
+  const greeting = `Good ${new Date().getHours() < 12 ? "morning" : new Date().getHours() < 18 ? "afternoon" : "evening"}, ${user.name.split(" ")[0]}`;
 
   return (
     <div className="space-y-6">
-      <PageHeader title={greeting} description={`${ROLE_LABEL[user!.role]} view · ${user?.role === "mentor" ? `${pool.length} assigned goalkeepers` : "Live overview of goalkeeper coverage and outstanding actions."}`} />
+      <PageHeader title={greeting} description={`${ROLE_LABEL[user.role]} view · ${user.role === "mentor" ? `${pool.length} assigned goalkeepers` : "Live overview of goalkeeper coverage and outstanding actions."}`} />
 
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
