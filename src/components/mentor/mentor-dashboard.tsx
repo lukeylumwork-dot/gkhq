@@ -10,6 +10,7 @@ import { formatRelative } from "@/lib/mock-data";
 import { WorkflowDialog, type WorkflowKind } from "@/components/workflows";
 import {
   selectAssignedPlayers,
+  selectDutyForPlayer,
   selectDutyRollup,
   selectMediaCountByPlayer,
   selectMentorProgress,
@@ -18,6 +19,7 @@ import {
   selectRecentReports,
   selectUpcomingForMentor,
   resolveMentorProfile,
+  type DutyOfCareRow,
   type PlayerRow,
 } from "@/lib/mentor-domain";
 import type { SessionUser } from "@/lib/auth";
