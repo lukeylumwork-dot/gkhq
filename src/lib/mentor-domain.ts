@@ -33,6 +33,10 @@ import {
   getMentor,
   type DutyLevel,
 } from "@/lib/mock-data";
+import {
+  getSessionInteractions,
+  getSessionReports,
+} from "@/lib/mentor-session-store";
 
 // ---------- Row shapes (Supabase-style) ----------
 
