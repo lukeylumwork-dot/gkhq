@@ -69,6 +69,8 @@ export interface DutyOfCareRow {
   label: string;
 }
 
+export type WellbeingFlag = "green" | "amber" | "red";
+
 export interface MentorInteractionRow {
   id: string;
   player_id: string;
@@ -78,7 +80,36 @@ export interface MentorInteractionRow {
   notes: string;
   outcome: string;
   follow_up: string;
+  /** Optional richer fields — populated for session-created rows. */
+  wellbeing_flag?: WellbeingFlag;
+  follow_up_required?: boolean;
+  next_action?: string;
+  transcript_source?: "voice_note" | "typed" | "handwritten";
 }
+
+/**
+ * The seven RPM goalkeeper metrics, scored 1-10.
+ * Reference schema: match_reports.scores jsonb.
+ */
+export interface Rpm7Scores {
+  shot_stopping: number;
+  distribution: number;
+  aerial_command: number;
+  one_v_one: number;
+  communication: number;
+  decision_making: number;
+  footwork: number;
+}
+
+export const RPM7_METRICS: Array<{ key: keyof Rpm7Scores; label: string; hint: string }> = [
+  { key: "shot_stopping", label: "Shot stopping", hint: "Reactions, positioning, saves" },
+  { key: "distribution", label: "Distribution", hint: "Throws, kicks, build-up" },
+  { key: "aerial_command", label: "Aerial command", hint: "Crosses, corners, claims" },
+  { key: "one_v_one", label: "1 v 1", hint: "Smother, spread, timing" },
+  { key: "communication", label: "Communication", hint: "Organising the back line" },
+  { key: "decision_making", label: "Decision making", hint: "When to come, when to stay" },
+  { key: "footwork", label: "Footwork", hint: "Set, shuffle, first step" },
+];
 
 export interface MatchReportRow {
   id: string;
@@ -88,6 +119,12 @@ export interface MatchReportRow {
   occurred_at: string;
   overall_rating: number;
   summary: string;
+  /** Optional richer fields — populated for session-created rows. */
+  fixture?: string;
+  opposition?: string;
+  minutes_watched?: number;
+  recommendation?: string;
+  scores?: Rpm7Scores;
 }
 
 export interface UpcomingFixtureRow {
