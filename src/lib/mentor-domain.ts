@@ -214,8 +214,6 @@ export function selectRecentInteractions(mentorProfileId: string, limit = 8): Me
   const session = getSessionInteractions().filter((r) => r.mentor_profile_id === mentorProfileId);
   const seeded: MentorInteractionRow[] = interactions
     .filter((i) => i.mentorId === mentorProfileId)
-    .sort((a, b) => +new Date(b.date) - +new Date(a.date))
-    .slice(0, limit)
     .map((i) => ({
       id: i.id,
       player_id: i.gkId,
@@ -226,14 +224,16 @@ export function selectRecentInteractions(mentorProfileId: string, limit = 8): Me
       outcome: i.outcome,
       follow_up: i.followUp,
     }));
+  return [...session, ...seeded]
+    .sort((a, b) => +new Date(b.occurred_at) - +new Date(a.occurred_at))
+    .slice(0, limit);
 }
 
-/** Recent match reports authored by this mentor. */
+/** Recent match reports authored by this mentor (session-store rows first). */
 export function selectRecentReports(mentorProfileId: string, limit = 6): MatchReportRow[] {
-  return reports
+  const session = getSessionReports().filter((r) => r.mentor_profile_id === mentorProfileId);
+  const seeded: MatchReportRow[] = reports
     .filter((r) => r.authorId === mentorProfileId)
-    .sort((a, b) => +new Date(b.date) - +new Date(a.date))
-    .slice(0, limit)
     .map((r) => ({
       id: r.id,
       player_id: r.gkId,
@@ -243,6 +243,9 @@ export function selectRecentReports(mentorProfileId: string, limit = 6): MatchRe
       overall_rating: r.rating,
       summary: r.summary,
     }));
+  return [...session, ...seeded]
+    .sort((a, b) => +new Date(b.occurred_at) - +new Date(a.occurred_at))
+    .slice(0, limit);
 }
 
 /** Next fixtures/observations for this mentor's roster. */
