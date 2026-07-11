@@ -330,15 +330,14 @@ export async function deleteMedia(asset: MediaAsset, user: SessionUser | null): 
 
 export function canEditAsset(asset: MediaAsset, user: SessionUser | null): boolean {
   if (!user) return false;
-  if (user.role === "admin") return true;
-  if (user.role === "director") return false;
+  if (user.role === "super_admin" || user.role === "admin" || user.role === "mentor_manager") return true;
   if (asset.uploaded_by_id && asset.uploaded_by_id === user.id) return true;
   return false;
 }
 
 export function canDeleteAsset(asset: MediaAsset, user: SessionUser | null): boolean {
   if (!user) return false;
-  if (user.role === "admin") return true;
+  if (user.role === "super_admin" || user.role === "admin") return true;
   return !!asset.uploaded_by_id && asset.uploaded_by_id === user.id;
 }
 

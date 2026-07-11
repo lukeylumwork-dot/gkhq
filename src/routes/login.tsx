@@ -7,22 +7,29 @@ export const Route = createFileRoute("/login")({ component: LoginPage });
 
 const ACCOUNTS = [
   {
+    id: "u-luke",
+    name: "Luke Harrison",
+    role: "super_admin" as const,
+    tagline: "Full system access · user management, imports, configuration",
+    icon: ShieldCheck,
+  },
+  {
     id: "u-richard",
     name: "Richard Lee",
     role: "admin" as const,
-    tagline: "Full platform access",
+    tagline: "Business admin · intelligence, reports, Duty of Care",
     icon: ShieldCheck,
   },
   {
     id: "u-david-r",
     name: "David Rouse",
-    role: "admin" as const,
-    tagline: "Full platform access",
+    role: "mentor_manager" as const,
+    tagline: "Mentor operations · oversight of reports, interactions and calendar",
     icon: ShieldCheck,
   },
   {
     id: "u-mentor",
-    name: "Mentor User",
+    name: "Mark Halsey",
     role: "mentor" as const,
     tagline: "Goalkeeper development, interactions and mentoring workflows",
     icon: HeartHandshake,

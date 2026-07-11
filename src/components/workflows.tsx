@@ -138,9 +138,7 @@ function ReportForm({ onDone }: { onDone: () => void }) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const types = user?.role === "scout"
-    ? ["Recruitment", "Opposition GK", "Match Report"]
-    : ["Goalkeeper Development", "Match Report", "Training Report", "Opposition GK", "Recruitment"];
+  const types = ["Goalkeeper Development", "Match Report", "Training Report", "Opposition GK", "Recruitment"];
 
   useEffect(() => { if (!types.includes(type)) setType(types[0]); }, [user]); // eslint-disable-line
 

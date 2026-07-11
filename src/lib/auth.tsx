@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 
-export type Role = "admin" | "mentor" | "scout" | "director";
+export type Role = "super_admin" | "admin" | "mentor_manager" | "mentor";
 
 export interface SessionUser {
   id: string;
@@ -13,26 +13,30 @@ export interface SessionUser {
 }
 
 export const DEMO_USERS: SessionUser[] = [
-  { id: "u-scott", name: "Scott Barron", email: "scott@rpmgk.com", role: "director", initials: "SB", title: "Co-Founder & Director", mentorId: "m-scott" },
+  { id: "u-luke", name: "Luke Harrison", email: "luke@rpmgk.com", role: "super_admin", initials: "LH", title: "Platform Owner" },
   { id: "u-richard", name: "Richard Lee", email: "richard@rpmgk.com", role: "admin", initials: "RL", title: "Co-Founder & Director", mentorId: "m-richard" },
-  { id: "u-sam", name: "Sam Winstanley", email: "sam@rpmgk.com", role: "director", initials: "SW", title: "Co-Founder & Director", mentorId: "m-sam" },
-  { id: "u-david-r", name: "David Rouse", email: "david.rouse@rpmgk.com", role: "admin", initials: "DR", title: "Managing Director" },
-  { id: "u-matt-g", name: "Matt GKU", email: "matt.gku@rpmgk.com", role: "scout", initials: "MG", title: "Goalkeeper Intelligence Scout" },
+  { id: "u-scott", name: "Scott Barron", email: "scott@rpmgk.com", role: "admin", initials: "SB", title: "Co-Founder & Director", mentorId: "m-scott" },
+  { id: "u-sam", name: "Sam Winstanley", email: "sam@rpmgk.com", role: "admin", initials: "SW", title: "Co-Founder & Director", mentorId: "m-sam" },
+  { id: "u-david-r", name: "David Rouse", email: "david.rouse@rpmgk.com", role: "mentor_manager", initials: "DR", title: "Managing Director" },
+  { id: "u-matt-b", name: "Matt Beadle", email: "matt.beadle@rpmgk.com", role: "mentor_manager", initials: "MB", title: "Mentor Operations Lead" },
+  { id: "u-matt-g", name: "Matt GKU", email: "matt.gku@rpmgk.com", role: "admin", initials: "MG", title: "Goalkeeper Intelligence Lead" },
   { id: "u-mentor", name: "Mark Halsey", email: "mark.halsey@rpmgk.com", role: "mentor", initials: "MH", title: "Goalkeeper Mentor", mentorId: "m-mark-h" },
 ];
 
-// Permission catalogue
+// Permission catalogue — kept intentionally coarse. Prefer role checks at route/nav
+// level via `can()` so the map here is the single place to adjust access.
 export type Permission =
-  | "users.manage"
+  | "system.manage"        // user/role management, imports, destructive system actions, diagnostics
   | "goalkeepers.view"
   | "goalkeepers.edit"
   | "goalkeepers.create"
+  | "mentors.view"
   | "mentors.assign"
   | "interactions.view"
   | "interactions.log"
   | "reports.view"
   | "reports.submit"
-  | "reports.manage"
+  | "reports.manage"       // review / edit mentor-submitted reports
   | "media.view"
   | "media.upload"
   | "media.edit"
@@ -40,31 +44,47 @@ export type Permission =
   | "alerts.view"
   | "calendar.view"
   | "executive.view"
-  | "audit.view"
-  | "mentors.view";
+  | "audit.view";
+
+const MENTOR: Permission[] = [
+  "goalkeepers.view",
+  "interactions.view", "interactions.log",
+  "reports.view", "reports.submit",
+  "media.view", "media.upload", "media.edit",
+  "intelligence.view",
+  "alerts.view", "calendar.view",
+];
+
+const MENTOR_MANAGER: Permission[] = [
+  ...MENTOR,
+  "goalkeepers.edit", "goalkeepers.create",
+  "mentors.view", "mentors.assign",
+  "reports.manage",
+  "audit.view",
+];
+
+const ADMIN: Permission[] = [
+  "goalkeepers.view", "goalkeepers.edit", "goalkeepers.create",
+  "mentors.view", "mentors.assign",
+  "interactions.view",
+  "reports.view", "reports.manage",
+  "media.view", "media.edit",
+  "intelligence.view",
+  "alerts.view", "calendar.view",
+  "executive.view", "audit.view",
+];
+
+const SUPER_ADMIN: Permission[] = [
+  "system.manage",
+  ...ADMIN,
+  "interactions.log", "reports.submit", "media.upload",
+];
 
 const MATRIX: Record<Role, Permission[]> = {
-  admin: [
-    "users.manage", "goalkeepers.view", "goalkeepers.edit", "goalkeepers.create",
-    "mentors.assign", "mentors.view", "interactions.view", "interactions.log",
-    "reports.view", "reports.submit", "reports.manage", "media.view", "media.upload",
-    "media.edit", "intelligence.view", "alerts.view", "calendar.view", "executive.view",
-    "audit.view",
-  ],
-  mentor: [
-    "goalkeepers.view", "interactions.view", "interactions.log",
-    "reports.view", "reports.submit", "media.view", "media.upload", "media.edit",
-    "alerts.view", "calendar.view", "intelligence.view",
-  ],
-  scout: [
-    "goalkeepers.view", "goalkeepers.create", "reports.view", "reports.submit",
-    "media.view", "media.upload", "media.edit", "intelligence.view", "calendar.view",
-  ],
-  director: [
-    "goalkeepers.view", "mentors.view", "reports.view", "intelligence.view",
-    "executive.view", "alerts.view", "calendar.view", "interactions.view",
-    "audit.view",
-  ],
+  super_admin: SUPER_ADMIN,
+  admin: ADMIN,
+  mentor_manager: MENTOR_MANAGER,
+  mentor: MENTOR,
 };
 
 interface AuthState {
@@ -119,8 +139,8 @@ export function useAuth() {
 }
 
 export const ROLE_LABEL: Record<Role, string> = {
+  super_admin: "Super Admin",
   admin: "Admin",
+  mentor_manager: "Mentor Manager",
   mentor: "Mentor",
-  scout: "Scout",
-  director: "Director",
 };
