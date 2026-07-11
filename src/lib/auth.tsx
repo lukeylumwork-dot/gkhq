@@ -90,6 +90,7 @@ const MATRIX: Record<Role, Permission[]> = {
 interface AuthState {
   user: SessionUser | null;
   signIn: (id: string) => void;
+  signInByEmail: (email: string) => SessionUser | null;
   signOut: () => void;
   can: (p: Permission) => boolean;
 }
@@ -118,6 +119,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(u);
     try { window.localStorage.setItem(KEY, u.id); } catch {}
   };
+  const signInByEmail = (email: string) => {
+    const normalized = email.trim().toLowerCase();
+    const u = DEMO_USERS.find((x) => x.email.toLowerCase() === normalized);
+    if (!u) return null;
+    setUser(u);
+    try { window.localStorage.setItem(KEY, u.id); } catch {}
+    return u;
+  };
   const signOut = () => {
     setUser(null);
     try { window.localStorage.removeItem(KEY); } catch {}
@@ -129,7 +138,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return <div className="min-h-screen bg-background" />;
   }
 
-  return <Ctx.Provider value={{ user, signIn, signOut, can }}>{children}</Ctx.Provider>;
+  return <Ctx.Provider value={{ user, signIn, signInByEmail, signOut, can }}>{children}</Ctx.Provider>;
 }
 
 export function useAuth() {
