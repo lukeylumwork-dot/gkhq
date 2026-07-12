@@ -13,14 +13,25 @@ export interface SessionUser {
 }
 
 export const DEMO_USERS: SessionUser[] = [
-  { id: "u-luke", name: "Luke Corrigan", email: "lcorrigan@gkhq.app", role: "super_admin", initials: "LC", title: "Platform Owner" },
-  { id: "u-richard", name: "Richard Lee", email: "rlee@gkhq.app", role: "admin", initials: "RL", title: "Co-Founder & Director", mentorId: "m-richard" },
-  { id: "u-scott", name: "Scott Barron", email: "sbarron@gkhq.app", role: "admin", initials: "SB", title: "Co-Founder & Director", mentorId: "m-scott" },
-  { id: "u-sam", name: "Sam Winstanley", email: "swinstanley@gkhq.app", role: "admin", initials: "SW", title: "Co-Founder & Director", mentorId: "m-sam" },
-  { id: "u-david-r", name: "David Rouse", email: "drouse@gkhq.app", role: "mentor_manager", initials: "DR", title: "Managing Director" },
-  { id: "u-matt-b", name: "Matt Beadle", email: "mbeadle@gkhq.app", role: "mentor_manager", initials: "MB", title: "Mentor Operations Lead" },
-  { id: "u-matt-g", name: "Matt GKU", email: "mgku@gkhq.app", role: "admin", initials: "MG", title: "Goalkeeper Intelligence Lead" },
-  { id: "u-mentor", name: "Mark Halsey", email: "mhalsey@gkhq.app", role: "mentor", initials: "MH", title: "Goalkeeper Mentor", mentorId: "m-mark-h" },
+  // Platform / leadership
+  { id: "u-luke", name: "Luke Corrigan", email: "lcorrigan@gkhq.app", role: "super_admin", initials: "LC", title: "System Admin / Product Owner" },
+  { id: "u-rich", name: "Rich Lee", email: "rlee@gkhq.app", role: "admin", initials: "RL", title: "Co-Founder & Director", mentorId: "m-rich-lee" },
+
+  // Mentor team (collaborative — no per-goalkeeper assignment)
+  { id: "u-drouse", name: "David Rouse", email: "drouse@gkhq.app", role: "mentor_manager", initials: "DR", title: "Managing Director & Mentor", mentorId: "m-david-rouse" },
+  { id: "u-dwatson", name: "Dave Watson", email: "dwatson@gkhq.app", role: "mentor", initials: "DW", title: "Goalkeeper Mentor", mentorId: "m-dave-watson" },
+  { id: "u-amarshall", name: "Andy Marshall", email: "amarshall@gkhq.app", role: "mentor", initials: "AM", title: "Goalkeeper Mentor", mentorId: "m-andy-marshall" },
+  { id: "u-jstern", name: "Jack Stern", email: "jstern@gkhq.app", role: "mentor", initials: "JS", title: "Goalkeeper Mentor", mentorId: "m-jack-stern" },
+  { id: "u-achamberlain", name: "Alec Chamberlain", email: "achamberlain@gkhq.app", role: "mentor", initials: "AC", title: "Goalkeeper Mentor", mentorId: "m-alec-chamberlain" },
+  { id: "u-mmargetson", name: "Martyn Margetson", email: "mmargetson@gkhq.app", role: "mentor", initials: "MM", title: "Goalkeeper Mentor", mentorId: "m-martyn-margetson" },
+  { id: "u-mmiddelbeek", name: "Martijn Middelbeek", email: "mmiddelbeek@gkhq.app", role: "mentor", initials: "MM", title: "Goalkeeper Mentor", mentorId: "m-martijn-middelbeek" },
+  { id: "u-mbeadle", name: "Matt Beadle", email: "mbeadle@gkhq.app", role: "mentor", initials: "MB", title: "Goalkeeper Mentor", mentorId: "m-matt-beadle" },
+
+  // Generic role-test accounts (for QA — sign in with any password)
+  { id: "u-test-super", name: "Super Admin (Test)", email: "superadmin@gkhq.app", role: "super_admin", initials: "SA", title: "Test — Super Admin" },
+  { id: "u-test-admin", name: "Admin (Test)", email: "admin@gkhq.app", role: "admin", initials: "AD", title: "Test — Admin" },
+  { id: "u-test-mm", name: "Mentor Manager (Test)", email: "mentormanager@gkhq.app", role: "mentor_manager", initials: "MM", title: "Test — Mentor Manager" },
+  { id: "u-test-mentor", name: "Mentor (Test)", email: "mentor@gkhq.app", role: "mentor", initials: "ME", title: "Test — Mentor", mentorId: "m-dave-watson" },
 ];
 
 // Permission catalogue — kept intentionally coarse. Prefer role checks at route/nav
