@@ -26,6 +26,7 @@ export type ReportType =
 
 export type StaffRole =
   | "Director"
+  | "Managing Director & Mentor"
   | "Goalkeeper Mentor"
   | "Goalkeeper Intelligence Scout"
   | "Video Analyst"
