@@ -116,6 +116,15 @@ export function AppShell() {
               <Plus className="size-4" />{primaryAction.label}
             </button>
           )}
+          <button
+            onClick={() => { signOut(); navigate({ to: "/login" as never }); }}
+            title="Sign out"
+            aria-label="Sign out"
+            className="inline-flex items-center gap-1.5 h-9 px-2.5 md:px-3 rounded-md border border-border text-sm hover:bg-accent"
+          >
+            <LogOut className="size-4" />
+            <span className="hidden md:inline">Sign out</span>
+          </button>
           <div ref={bellRef} className="relative">
             <button onClick={() => setBellOpen((v) => !v)} className="relative size-9 grid place-items-center rounded-md border border-border hover:bg-accent">
               <BellRing className="size-4" />
