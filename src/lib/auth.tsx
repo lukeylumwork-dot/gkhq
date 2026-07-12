@@ -68,7 +68,7 @@ const MENTOR: Permission[] = [
 const MENTOR_MANAGER: Permission[] = [
   ...MENTOR,
   "goalkeepers.edit", "goalkeepers.create",
-  "mentors.view", "mentors.assign",
+  "mentors.view",
   "reports.manage",
   "audit.view",
 ];
