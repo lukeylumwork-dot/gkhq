@@ -73,7 +73,7 @@ export function MentorDashboard({ user, mentorProfileId }: Props) {
         <div className="min-w-0">
           <h1 className="text-xl sm:text-2xl font-semibold tracking-tight truncate">{greeting}</h1>
           <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-            {profile?.region ?? "Mentor"} · {roster.length} assigned goalkeepers
+            {profile?.region ?? "Mentor"} · {roster.length} goalkeepers in the RPM roster
           </p>
         </div>
         <div className="shrink-0 hidden sm:flex flex-col items-end">

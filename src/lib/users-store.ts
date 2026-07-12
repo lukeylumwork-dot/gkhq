@@ -4,7 +4,7 @@ export interface ManagedUser extends SessionUser {
   active: boolean;
 }
 
-const KEY = "rpm.users.v1";
+const KEY = "rpm.users.v2";
 type Listener = () => void;
 
 function seed(): ManagedUser[] {

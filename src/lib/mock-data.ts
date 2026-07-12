@@ -26,6 +26,7 @@ export type ReportType =
 
 export type StaffRole =
   | "Director"
+  | "Managing Director & Mentor"
   | "Goalkeeper Mentor"
   | "Goalkeeper Intelligence Scout"
   | "Video Analyst"
@@ -121,31 +122,26 @@ const initialsOf = (n: string) => n.split(" ").map((p) => p[0]).join("").slice(0
 const daysFromNow = (d: number) => { const dt = new Date(); dt.setDate(dt.getDate() + d); return dt.toISOString(); };
 
 // ---------- RPM Personnel ----------
-// Co-founders & directors + working mentors / scouts / analysts.
+// Current RPM mentor team + directors. Mentors work collaboratively across
+// the entire client roster — there is no per-goalkeeper assignment.
 export const mentors: Mentor[] = [
-  // Leadership (still appear as accounts)
-  { id: "m-scott", name: "Scott Barron", initials: "SB", region: "UK & Ireland", role: "Director", email: "scott@rpmgk.com", phone: "+44 7539 776776", assignedGks: [], targetInteractions: 6, completedThisMonth: 4, yearsExperience: 22 },
-  { id: "m-richard", name: "Richard Lee", initials: "RL", region: "UK & Ireland", role: "Director", email: "richard@rpmgk.com", phone: "+44 7971 776776", assignedGks: [], targetInteractions: 6, completedThisMonth: 5, yearsExperience: 24 },
-  { id: "m-sam", name: "Sam Winstanley", initials: "SW", region: "UK & Ireland", role: "Director", email: "sam@rpmgk.com", phone: "+44 7749 103612", assignedGks: [], targetInteractions: 6, completedThisMonth: 3, yearsExperience: 18 },
+  // Leadership
+  { id: "m-rich-lee", name: "Rich Lee", initials: "RL", region: "UK & Ireland", role: "Director", email: "rlee@gkhq.app", phone: "+44 7971 776776", assignedGks: [], targetInteractions: 6, completedThisMonth: 5, yearsExperience: 24 },
 
-  // Goalkeeper Mentors (UK regions)
-  { id: "m-mark-h", name: "Mark Halsey", initials: "MH", region: "North West", role: "Goalkeeper Mentor", email: "mark.halsey@rpmgk.com", assignedGks: [], targetInteractions: 14, completedThisMonth: 11, yearsExperience: 16 },
-  { id: "m-dave-t", name: "David Timson", initials: "DT", region: "London & South", role: "Goalkeeper Mentor", email: "dave.timson@rpmgk.com", assignedGks: [], targetInteractions: 14, completedThisMonth: 12, yearsExperience: 14 },
-  { id: "m-chris-d", name: "Chris Day", initials: "CD", region: "Midlands", role: "Goalkeeper Mentor", email: "chris.day@rpmgk.com", assignedGks: [], targetInteractions: 12, completedThisMonth: 9, yearsExperience: 20 },
-  { id: "m-paul-j", name: "Paul Jones", initials: "PJ", region: "Yorkshire & North East", role: "Goalkeeper Mentor", email: "paul.jones@rpmgk.com", assignedGks: [], targetInteractions: 12, completedThisMonth: 10, yearsExperience: 19 },
-  { id: "m-rob-g", name: "Rob Green", initials: "RG", region: "London & South", role: "Goalkeeper Mentor", email: "rob.green@rpmgk.com", assignedGks: [], targetInteractions: 12, completedThisMonth: 8, yearsExperience: 12 },
-  { id: "m-ali-b", name: "Ali Bradley", initials: "AB", region: "Scotland & NI", role: "Goalkeeper Mentor", email: "ali.bradley@rpmgk.com", assignedGks: [], targetInteractions: 10, completedThisMonth: 7, yearsExperience: 11 },
-
-  // Intelligence / Scouting / Analysts
-  { id: "m-luke-s", name: "Luke Steele", initials: "LS", region: "Europe", role: "Goalkeeper Intelligence Scout", email: "luke.steele@rpmgk.com", assignedGks: [], targetInteractions: 10, completedThisMonth: 9, yearsExperience: 9 },
-  { id: "m-tom-h", name: "Tom Heaton", initials: "TH", region: "International", role: "Goalkeeper Intelligence Scout", email: "tom.heaton@rpmgk.com", assignedGks: [], targetInteractions: 8, completedThisMonth: 6, yearsExperience: 8 },
-  { id: "m-emma-w", name: "Emma Wright", initials: "EW", region: "HQ", role: "Video Analyst", email: "emma.wright@rpmgk.com", assignedGks: [], targetInteractions: 0, completedThisMonth: 0, yearsExperience: 6 },
-  { id: "m-jon-m", name: "Jonathan Marshall", initials: "JM", region: "HQ", role: "Recruitment Analyst", email: "jon.marshall@rpmgk.com", assignedGks: [], targetInteractions: 0, completedThisMonth: 0, yearsExperience: 7 },
-  { id: "m-claire-h", name: "Claire Hartley", initials: "CH", region: "HQ", role: "Operations Manager", email: "claire.hartley@rpmgk.com", assignedGks: [], targetInteractions: 0, completedThisMonth: 0, yearsExperience: 10 },
+  // Mentor team (David Rouse also manages the mentor team)
+  { id: "m-david-rouse", name: "David Rouse", initials: "DR", region: "UK & Ireland", role: "Managing Director & Mentor", email: "drouse@gkhq.app", assignedGks: [], targetInteractions: 12, completedThisMonth: 10, yearsExperience: 22 },
+  { id: "m-dave-watson", name: "Dave Watson", initials: "DW", region: "North West", role: "Goalkeeper Mentor", email: "dwatson@gkhq.app", assignedGks: [], targetInteractions: 14, completedThisMonth: 11, yearsExperience: 30 },
+  { id: "m-andy-marshall", name: "Andy Marshall", initials: "AM", region: "East", role: "Goalkeeper Mentor", email: "amarshall@gkhq.app", assignedGks: [], targetInteractions: 14, completedThisMonth: 12, yearsExperience: 25 },
+  { id: "m-jack-stern", name: "Jack Stern", initials: "JS", region: "London & South", role: "Goalkeeper Mentor", email: "jstern@gkhq.app", assignedGks: [], targetInteractions: 12, completedThisMonth: 9, yearsExperience: 12 },
+  { id: "m-alec-chamberlain", name: "Alec Chamberlain", initials: "AC", region: "Midlands", role: "Goalkeeper Mentor", email: "achamberlain@gkhq.app", assignedGks: [], targetInteractions: 12, completedThisMonth: 10, yearsExperience: 28 },
+  { id: "m-martyn-margetson", name: "Martyn Margetson", initials: "MM", region: "Wales & South West", role: "Goalkeeper Mentor", email: "mmargetson@gkhq.app", assignedGks: [], targetInteractions: 12, completedThisMonth: 8, yearsExperience: 24 },
+  { id: "m-martijn-middelbeek", name: "Martijn Middelbeek", initials: "MM", region: "Europe", role: "Goalkeeper Mentor", email: "mmiddelbeek@gkhq.app", assignedGks: [], targetInteractions: 10, completedThisMonth: 8, yearsExperience: 18 },
+  { id: "m-matt-beadle", name: "Matt Beadle", initials: "MB", region: "South Coast", role: "Goalkeeper Mentor", email: "mbeadle@gkhq.app", assignedGks: [], targetInteractions: 12, completedThisMonth: 9, yearsExperience: 15 },
 ];
 
-// Mentors actively in the assignment pool (exclude directors + non-mentoring staff)
-const ASSIGN_POOL = ["m-mark-h", "m-dave-t", "m-chris-d", "m-paul-j", "m-rob-g", "m-ali-b"];
+// Rotation pool used only to seed each goalkeeper's most-recent-contact mentor.
+// Mentors are NOT assigned to specific goalkeepers — the whole team works the roster.
+const ASSIGN_POOL = ["m-dave-watson", "m-andy-marshall", "m-jack-stern", "m-alec-chamberlain", "m-martyn-margetson", "m-martijn-middelbeek", "m-matt-beadle", "m-david-rouse"];
 
 // ---------- Goalkeepers (real RPM client list, Feb 2026) ----------
 type Seed = { name: string; dob: string; age: number; club: string; league: string; contract: string };
@@ -315,7 +311,7 @@ const RATING_OVERRIDE: Record<string, { rating: number; potential: number; recom
 export const goalkeepers: Goalkeeper[] = SEED.map((s, i) => {
   const status = deriveStatus(s);
   const region = deriveRegion(s);
-  const mentorId = status === "Free Agent" ? "m-sam" : ASSIGN_POOL[i % ASSIGN_POOL.length];
+  const mentorId = status === "Free Agent" ? "m-david-rouse" : ASSIGN_POOL[i % ASSIGN_POOL.length];
   const o = RATING_OVERRIDE[s.name];
   const baseRating = status === "Elite" ? between(78, 90) : status === "First Team" ? between(70, 84) : status === "Development" ? between(64, 78) : status === "Prospect" ? between(58, 72) : between(60, 75);
   const gk: Goalkeeper = {
@@ -573,7 +569,7 @@ export const stats = {
   upcomingInteractions: goalkeepers.filter((g) => new Date(g.nextInteraction).getTime() >= Date.now() && (new Date(g.nextInteraction).getTime() - Date.now()) / 86400000 < 14).length,
   overdueInteractions: alerts.filter((a) => a.kind === "Overdue observation" || a.kind === "Overdue contact").length,
   reportsThisWeek: reports.filter((r) => (Date.now() - new Date(r.date).getTime()) / 86400000 < 7).length,
-  activeMentors: mentors.filter((m) => m.role === "Goalkeeper Mentor" || m.role === "Goalkeeper Intelligence Scout").length,
+  activeMentors: mentors.filter((m) => m.role === "Goalkeeper Mentor" || m.role === "Goalkeeper Intelligence Scout" || m.role === "Managing Director & Mentor").length,
   // Back-compat: tierDistribution now reports the Status distribution
   tierDistribution: STATUSES.map((t) => ({ tier: t, count: goalkeepers.filter((g) => g.status === t).length })),
   statusDistribution: STATUSES.map((t) => ({ status: t, count: goalkeepers.filter((g) => g.status === t).length })),

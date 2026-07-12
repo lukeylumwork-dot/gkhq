@@ -183,19 +183,17 @@ function toDutyRow(id: string): DutyOfCareRow | null {
 
 // ---------- Selectors ----------
 
-/** All players a given mentor profile is currently assigned to. */
-export function selectAssignedPlayers(mentorProfileId: string): PlayerRow[] {
+/** Full RPM client roster — mentors work collaboratively, so every mentor sees all goalkeepers. */
+export function selectAssignedPlayers(_mentorProfileId: string): PlayerRow[] {
   return goalkeepers
-    .filter((g) => g.mentorId === mentorProfileId)
     .map((g) => toPlayerRow(g.id)!)
     .sort((a, b) => a.full_name.localeCompare(b.full_name));
 }
 
-/** Duty of care rows for a mentor's roster, ordered worst-first. */
-export function selectDutyOfCareForMentor(mentorProfileId: string): DutyOfCareRow[] {
+/** Duty of care rows for the full roster, ordered worst-first. */
+export function selectDutyOfCareForMentor(_mentorProfileId: string): DutyOfCareRow[] {
   const rank: Record<DutyLevel, number> = { red: 0, amber: 1, green: 2 };
   return goalkeepers
-    .filter((g) => g.mentorId === mentorProfileId)
     .map((g) => toDutyRow(g.id)!)
     .sort((a, b) => rank[a.level] - rank[b.level] || b.days_since_contact - a.days_since_contact);
 }
@@ -257,13 +255,12 @@ export function selectRecentReports(mentorProfileId: string, limit = 6): MatchRe
     .slice(0, limit);
 }
 
-/** Next fixtures/observations for this mentor's roster. */
-export function selectUpcomingForMentor(mentorProfileId: string, days = 14, limit = 6): UpcomingFixtureRow[] {
+/** Next fixtures/observations across the full client roster. */
+export function selectUpcomingForMentor(_mentorProfileId: string, days = 14, limit = 6): UpcomingFixtureRow[] {
   const now = Date.now();
   const cutoff = now + days * 86400000;
-  const roster = new Set(goalkeepers.filter((g) => g.mentorId === mentorProfileId).map((g) => g.id));
   return calendarEvents
-    .filter((e) => e.gkId && roster.has(e.gkId) && +new Date(e.date) >= now && +new Date(e.date) <= cutoff)
+    .filter((e) => e.gkId && +new Date(e.date) >= now && +new Date(e.date) <= cutoff)
     .sort((a, b) => +new Date(a.date) - +new Date(b.date))
     .slice(0, limit)
     .map((e) => ({
@@ -293,11 +290,10 @@ export function selectPlayer(playerId: string): PlayerRow | null {
   return toPlayerRow(playerId);
 }
 
-/** Media count per player for the mentor's roster (used in list badges). */
-export function selectMediaCountByPlayer(mentorProfileId: string): Record<string, number> {
-  const roster = new Set(goalkeepers.filter((g) => g.mentorId === mentorProfileId).map((g) => g.id));
+/** Media count per player across the full roster (used in list badges). */
+export function selectMediaCountByPlayer(_mentorProfileId: string): Record<string, number> {
   const out: Record<string, number> = {};
-  media.forEach((m) => { if (roster.has(m.gkId)) out[m.gkId] = (out[m.gkId] ?? 0) + 1; });
+  media.forEach((m) => { out[m.gkId] = (out[m.gkId] ?? 0) + 1; });
   return out;
 }
 

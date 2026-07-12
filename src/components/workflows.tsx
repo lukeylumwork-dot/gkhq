@@ -334,12 +334,8 @@ function MediaForm({ onDone }: { onDone: () => void }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const allowedGks = useMemo(() => {
-    if (user?.role === "mentor" && user.mentorId) {
-      return goalkeepers.filter((g) => g.mentorId === user.mentorId);
-    }
-    return goalkeepers;
-  }, [user]);
+  // Mentors work collaboratively — any mentor can link media to any goalkeeper.
+  const allowedGks = useMemo(() => goalkeepers, []);
 
   if (!user || !can("media.upload")) {
     return (
@@ -442,22 +438,14 @@ function EditMediaForm({ asset, onDone }: { asset: MediaAsset; onDone: () => voi
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
 
-  const allowedGks = useMemo(() => {
-    if (user?.role === "mentor" && user.mentorId) {
-      return goalkeepers.filter((g) => g.mentorId === user.mentorId);
-    }
-    return goalkeepers;
-  }, [user]);
+  // Mentors work collaboratively — any mentor can link media to any goalkeeper.
+  const allowedGks = useMemo(() => goalkeepers, []);
 
   if (done) return <Submitted message="Media updated." onDone={onDone} />;
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    if (user?.role === "mentor" && !allowedGks.find((g) => g.id === gkId)) {
-      setError("Mentors can only link media to their assigned goalkeepers.");
-      return;
-    }
     setBusy(true);
     try {
       await updateMedia(asset.id, { title: title.trim(), notes: notes || null, media_type: kind, gk_id: gkId, rating_tags: tags }, user, asset);
@@ -509,7 +497,6 @@ function GoalkeeperForm({ onDone }: { onDone: () => void }) {
         <Field label="League"><input className={inputCls} placeholder="e.g. League of Ireland" /></Field>
         <Field label="Height"><input className={inputCls} placeholder="e.g. 192cm" /></Field>
         <Field label="Status"><select className={selectCls}>{["Prospect", "Development", "First Team", "Elite", "Free Agent"].map((t) => <option key={t}>{t}</option>)}</select></Field>
-        <Field label="Assign Mentor"><select className={selectCls}><option value="">— Unassigned —</option>{mentors.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}</select></Field>
         <Field label="Contract Until"><input type="date" className={inputCls} /></Field>
         <Field label="Recommendation"><select className={selectCls}>{["Monitor", "Sign", "Loan", "Develop", "Retain", "Pass"].map((t) => <option key={t}>{t}</option>)}</select></Field>
       </div>
