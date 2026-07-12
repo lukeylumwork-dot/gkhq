@@ -42,7 +42,6 @@ export type Permission =
   | "goalkeepers.edit"
   | "goalkeepers.create"
   | "mentors.view"
-  | "mentors.assign"
   | "interactions.view"
   | "interactions.log"
   | "reports.view"
