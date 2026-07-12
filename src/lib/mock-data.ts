@@ -311,7 +311,7 @@ const RATING_OVERRIDE: Record<string, { rating: number; potential: number; recom
 export const goalkeepers: Goalkeeper[] = SEED.map((s, i) => {
   const status = deriveStatus(s);
   const region = deriveRegion(s);
-  const mentorId = status === "Free Agent" ? "m-sam" : ASSIGN_POOL[i % ASSIGN_POOL.length];
+  const mentorId = status === "Free Agent" ? "m-david-rouse" : ASSIGN_POOL[i % ASSIGN_POOL.length];
   const o = RATING_OVERRIDE[s.name];
   const baseRating = status === "Elite" ? between(78, 90) : status === "First Team" ? between(70, 84) : status === "Development" ? between(64, 78) : status === "Prospect" ? between(58, 72) : between(60, 75);
   const gk: Goalkeeper = {
