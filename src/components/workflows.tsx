@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { X, CheckCircle2, Upload, AlertCircle, Paperclip, Search } from "lucide-react";
+import { X, CheckCircle2, Upload, AlertCircle, Paperclip, Search, Trash2 } from "lucide-react";
 import { goalkeepers, mentors } from "@/lib/mock-data";
 import { useAuth, type SessionUser } from "@/lib/auth";
 import {
@@ -13,6 +13,19 @@ import { submitMatchReport } from "@/lib/match-reports/reports.functions";
 import {
   PILLAR_IDS, PILLAR_LABELS, averageOfScores, type PillarId,
 } from "@/lib/match-reports/schema";
+import {
+  loadDraft, saveDraft, clearDraft, isDraftMeaningful,
+} from "@/lib/match-reports/draft-store";
+
+function formatDraftTime(iso: string): string {
+  try {
+    const d = new Date(iso);
+    const today = new Date();
+    const sameDay = d.toDateString() === today.toDateString();
+    const t = d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    return sameDay ? t : `${d.toLocaleDateString()} ${t}`;
+  } catch { return iso; }
+}
 
 export type WorkflowKind = "interaction" | "report" | "media" | "goalkeeper";
 
@@ -162,6 +175,66 @@ function ReportForm({ onDone }: { onDone: () => void }) {
     if (!canOverrideCoach && user?.name) setCoach(user.name);
   }, [canOverrideCoach, user?.name]);
 
+  // ---------------- Draft persistence (localStorage, 5s debounce) ----------------
+  const [draftLoaded, setDraftLoaded] = useState(false);
+  const [draftSavedAt, setDraftSavedAt] = useState<string | null>(null);
+  const [draftRestoredFrom, setDraftRestoredFrom] = useState<string | null>(null);
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Restore on mount.
+  useEffect(() => {
+    if (!user) return;
+    const d = loadDraft(user.id);
+    if (d) {
+      setGoalkeeper(d.goalkeeper);
+      if (canOverrideCoach) setCoach(d.coach);
+      setTeam(d.team);
+      setOpponent(d.opponent);
+      if (d.matchDate) setMatchDate(d.matchDate);
+      setScores(d.scores);
+      setComments(d.comments);
+      setSelectedMedia(d.selectedMedia);
+      setDraftSavedAt(d.savedAt);
+      setDraftRestoredFrom(d.savedAt);
+    }
+    setDraftLoaded(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
+
+  // Autosave (debounced 5s) whenever a tracked field changes.
+  useEffect(() => {
+    if (!user || !draftLoaded || done) return;
+    const snapshot = {
+      goalkeeper, coach, team, opponent, matchDate,
+      scores, comments, selectedMedia,
+    };
+    if (!isDraftMeaningful(snapshot)) return;
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => {
+      const savedAt = saveDraft(user.id, snapshot);
+      setDraftSavedAt(savedAt);
+    }, 5000);
+    return () => { if (saveTimer.current) clearTimeout(saveTimer.current); };
+  }, [user, draftLoaded, done, goalkeeper, coach, team, opponent, matchDate, scores, comments, selectedMedia]);
+
+  const discardDraft = () => {
+    if (!user) return;
+    clearDraft(user.id);
+    setGoalkeeper("");
+    if (canOverrideCoach) setCoach(user.name);
+    setTeam("");
+    setOpponent("");
+    setMatchDate(new Date().toISOString().slice(0, 10));
+    setScores({
+      protect_goal: 3, protect_space: 3, protect_air: 3,
+      control_play: 3, change_play: 3, psych: 3, physical: 3,
+    });
+    setComments("");
+    setSelectedMedia([]);
+    setDraftSavedAt(null);
+    setDraftRestoredFrom(null);
+  };
+
   const liveAverage = useMemo(() => averageOfScores(scores), [scores]);
 
   if (done) {
@@ -204,6 +277,9 @@ function ReportForm({ onDone }: { onDone: () => void }) {
         catch (mErr) { console.error("[report] attach media failed:", mErr); }
       }
       window.dispatchEvent(new CustomEvent("rpm:report-submitted"));
+      clearDraft(user.id);
+      setDraftSavedAt(null);
+      setDraftRestoredFrom(null);
       setDone({ report_id: res.report_id, average: res.average });
     } catch (err) {
       // Zod errors from the server come back stringified; surface plainly.
@@ -300,11 +376,31 @@ function ReportForm({ onDone }: { onDone: () => void }) {
       />
 
       {error && <div className="text-xs text-destructive flex items-start gap-1.5"><AlertCircle className="size-3.5 mt-0.5" />{error}</div>}
-      <div className="flex justify-end gap-2 pt-2">
-        <button type="button" onClick={onDone} className="h-9 px-3 rounded-md border border-border text-sm" disabled={submitting}>Cancel</button>
-        <button type="submit" disabled={submitting} className="h-9 px-4 rounded-md bg-primary text-primary-foreground text-sm font-medium disabled:opacity-60">
-          {submitting ? "Saving to Sheet…" : "Submit Match Report"}
-        </button>
+      <div className="flex items-center justify-between gap-2 pt-2 border-t border-border/60">
+        <div className="text-[11px] text-muted-foreground flex items-center gap-2 min-h-6">
+          {draftRestoredFrom && (
+            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-accent/40 text-foreground/80">
+              Draft restored from {formatDraftTime(draftRestoredFrom)}
+            </span>
+          )}
+          {draftSavedAt ? (
+            <span>Draft saved · {formatDraftTime(draftSavedAt)}</span>
+          ) : draftLoaded ? (
+            <span className="opacity-60">Autosaves every 5s</span>
+          ) : null}
+          {draftSavedAt && (
+            <button type="button" onClick={discardDraft} disabled={submitting}
+              className="inline-flex items-center gap-1 text-muted-foreground hover:text-destructive">
+              <Trash2 className="size-3" /> Discard draft
+            </button>
+          )}
+        </div>
+        <div className="flex gap-2">
+          <button type="button" onClick={onDone} className="h-9 px-3 rounded-md border border-border text-sm" disabled={submitting}>Cancel</button>
+          <button type="submit" disabled={submitting} className="h-9 px-4 rounded-md bg-primary text-primary-foreground text-sm font-medium disabled:opacity-60">
+            {submitting ? "Saving to Sheet…" : "Submit Match Report"}
+          </button>
+        </div>
       </div>
     </form>
   );
