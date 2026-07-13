@@ -1,10 +1,13 @@
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
+import { useQuery } from "@tanstack/react-query";
 import { PageHeader, Card, Pill } from "@/components/primitives";
-import { reports, getGk, getMentor, formatDate } from "@/lib/mock-data";
 import { useCallback, useEffect, useState } from "react";
 import { ArrowLeft, FileText, Video, Image as ImageIcon, Mic, ExternalLink } from "lucide-react";
 import { listReportAttachments, openAsset, type MediaAsset } from "@/lib/media-store";
 import { useAuth } from "@/lib/auth";
+import { getMatchReport } from "@/lib/match-reports/reports.functions";
+import { PILLAR_IDS, PILLAR_LABELS } from "@/lib/match-reports/schema";
 
 export const Route = createFileRoute("/reports/$reportId")({
   component: ReportDetail,
@@ -14,31 +17,49 @@ export const Route = createFileRoute("/reports/$reportId")({
   errorComponent: ({ error }) => (
     <Card className="p-10 text-center text-sm text-destructive">{error.message}</Card>
   ),
-  loader: ({ params }) => {
-    const r = reports.find((x) => x.id === params.reportId);
-    if (!r) throw notFound();
-    return { report: r };
-  },
 });
 
 const ICON: Record<string, typeof FileText> = { video: Video, pdf: FileText, image: ImageIcon, audio: Mic };
 
+function formatDate(iso: string | null) {
+  if (!iso) return "—";
+  const [y, m, d] = iso.split("-");
+  return `${d}/${m}/${y}`;
+}
+
 function ReportDetail() {
-  const { report: r } = Route.useLoaderData();
+  const { reportId } = Route.useParams();
   const { user } = useAuth();
-  const gk = getGk(r.gkId);
-  const author = getMentor(r.authorId);
+  const getFn = useServerFn(getMatchReport);
+
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["match-report", reportId],
+    queryFn: () => getFn({ data: { reportId } }),
+  });
+
+  const r = data?.report ?? null;
+
   const [attachments, setAttachments] = useState<MediaAsset[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loadingAttachments, setLoadingAttachments] = useState(true);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try { setAttachments(await listReportAttachments(r.id)); }
+  const loadAttachments = useCallback(async () => {
+    setLoadingAttachments(true);
+    try { setAttachments(await listReportAttachments(reportId)); }
     catch (e) { console.error(e); }
-    finally { setLoading(false); }
-  }, [r.id]);
+    finally { setLoadingAttachments(false); }
+  }, [reportId]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { loadAttachments(); }, [loadAttachments]);
+
+  if (isLoading) {
+    return <Card className="p-10 text-center text-sm text-muted-foreground">Loading report…</Card>;
+  }
+  if (error) {
+    return <Card className="p-10 text-center text-sm text-destructive">{(error as Error).message}</Card>;
+  }
+  if (!r) {
+    return <Card className="p-10 text-center text-sm text-muted-foreground">Report not found.</Card>;
+  }
 
   return (
     <div className="space-y-5">
@@ -47,23 +68,34 @@ function ReportDetail() {
       </Link>
 
       <PageHeader
-        title={`${r.type} — ${gk?.name ?? "Unknown"}`}
-        description={`${formatDate(r.date)} · Author: ${author?.name ?? "—"}`}
-        action={<div className="text-right"><div className="text-[11px] text-muted-foreground uppercase tracking-wider">Overall Rating</div><div className="text-3xl font-semibold tabular-nums">{r.rating}</div></div>}
+        title={`Match Report — ${r.goalkeeper}`}
+        description={`${formatDate(r.match_date)} · ${r.team ?? "—"} vs ${r.opponent ?? "—"} · Coach: ${r.coach}`}
+        action={
+          <div className="text-right">
+            <div className="text-[11px] text-muted-foreground uppercase tracking-wider">Average</div>
+            <div className="text-3xl font-semibold tabular-nums">
+              {r.average != null ? r.average.toFixed(1) : "—"}
+            </div>
+          </div>
+        }
       />
 
       <div className="grid lg:grid-cols-3 gap-4">
         <Card className="p-4 lg:col-span-2">
-          <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium mb-2">Written Observations</div>
-          <p className="text-sm leading-relaxed text-foreground/90">{r.summary}</p>
+          <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium mb-2">Comments</div>
+          <p className="text-sm leading-relaxed text-foreground/90 whitespace-pre-wrap">
+            {r.comments || <span className="text-muted-foreground italic">No comments recorded.</span>}
+          </p>
         </Card>
         <Card className="p-4">
-          <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium mb-2">Structured Scoring</div>
+          <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium mb-2">RPM Pillar Scores</div>
           <ul className="space-y-1.5 text-sm">
-            {Object.entries(r.scores).map(([k, v]) => (
-              <li key={k} className="flex items-center justify-between">
-                <span className="capitalize text-muted-foreground">{k.replace(/([A-Z])/g, " $1")}</span>
-                <span className="font-semibold tabular-nums">{String(v)}/10</span>
+            {PILLAR_IDS.map((id) => (
+              <li key={id} className="flex items-start justify-between gap-3">
+                <span className="text-muted-foreground text-xs leading-tight">{PILLAR_LABELS[id]}</span>
+                <span className="font-semibold tabular-nums shrink-0">
+                  {r.scores[id] != null ? `${r.scores[id]}/5` : "—"}
+                </span>
               </li>
             ))}
           </ul>
@@ -75,7 +107,7 @@ function ReportDetail() {
           <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">Attached Media</div>
           <span className="text-xs text-muted-foreground">{attachments.length} attached</span>
         </div>
-        {loading ? (
+        {loadingAttachments ? (
           <div className="text-sm text-muted-foreground py-4">Loading…</div>
         ) : attachments.length === 0 ? (
           <div className="text-sm text-muted-foreground py-4">No media attached to this report.</div>
@@ -94,7 +126,7 @@ function ReportDetail() {
                       <div className="text-xs font-medium line-clamp-1">{a.title}</div>
                       <div className="flex items-center justify-between mt-1">
                         <Pill>{a.media_type}</Pill>
-                        <span className="text-[10px] text-muted-foreground">{formatDate(a.created_at)}</span>
+                        <span className="text-[10px] text-muted-foreground">{new Date(a.created_at).toLocaleDateString()}</span>
                       </div>
                     </div>
                   </Card>
