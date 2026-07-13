@@ -72,12 +72,17 @@ export function loadDraft(userId: string): ReportDraft | null {
 
 export type SaveResult =
   | { ok: true; savedAt: string; version: number }
-  | { ok: false; conflict: ReportDraft };
+  | { ok: false; conflict: ReportDraft }
+  | { ok: false; error: string };
+
+export type OverwriteResult =
+  | { ok: true; savedAt: string; version: number }
+  | { ok: false; error: string };
 
 /**
  * Save with optimistic version check. Pass `expectedVersion = 0` for a
  * first-time save. If the on-disk draft has advanced beyond
- * `expectedVersion` from a different tab, the call is refused and the
+ * `expectedVersion` from a different `tabId`, the call is refused and the
  * remote draft is returned as `conflict` for the UI to resolve.
  */
 export function saveDraft(
@@ -98,7 +103,9 @@ export function saveDraft(
   const draft: ReportDraft = { ...snapshot, version: nextVersion, tabId, savedAt: now };
   try {
     window.localStorage.setItem(keyFor(userId), JSON.stringify(draft));
-  } catch { /* quota exceeded — ignore */ }
+  } catch {
+    return { ok: false, error: "Could not save draft — localStorage may be full or unavailable." };
+  }
   return { ok: true, savedAt: now, version: nextVersion };
 }
 
@@ -107,15 +114,19 @@ export function overwriteDraft(
   userId: string,
   tabId: string,
   snapshot: ReportDraftSnapshot,
-): { savedAt: string; version: number } {
+): OverwriteResult {
   const current = readRaw(userId);
   const nextVersion = (current?.version ?? 0) + 1;
   const now = new Date().toISOString();
   if (isBrowser()) {
     const draft: ReportDraft = { ...snapshot, version: nextVersion, tabId, savedAt: now };
-    try { window.localStorage.setItem(keyFor(userId), JSON.stringify(draft)); } catch { /* ignore */ }
+    try {
+      window.localStorage.setItem(keyFor(userId), JSON.stringify(draft));
+    } catch {
+      return { ok: false, error: "Could not save draft — localStorage may be full or unavailable." };
+    }
   }
-  return { savedAt: now, version: nextVersion };
+  return { ok: true, savedAt: now, version: nextVersion };
 }
 
 export function clearDraft(userId: string): void {
