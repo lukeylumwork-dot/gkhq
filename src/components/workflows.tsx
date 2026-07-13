@@ -417,6 +417,7 @@ function ReportForm({ onDone }: { onDone: () => void }) {
       setDraftSavedAt(null);
       setDraftRestoredFrom(null);
       localVersionRef.current = 0;
+      setSaveStatus("idle");
       setDone({ report_id: res.report_id, average: res.average });
     } catch (err) {
       // Zod errors from the server come back stringified; surface plainly.
