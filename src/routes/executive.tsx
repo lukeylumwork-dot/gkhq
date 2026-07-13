@@ -1,8 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { PageHeader, Card, StatCard, SectionTitle, TierBadge, ProgressBar, Pill } from "@/components/primitives";
 import { goalkeepers, mentors, reports, interactions, stats } from "@/lib/mock-data";
+import { withPermission } from "@/components/require-permission";
 
-export const Route = createFileRoute("/executive")({ component: Executive });
+export const Route = createFileRoute("/executive")({ component: withPermission(Executive, "executive.view") });
 
 function Executive() {
   const reportsByType = ["Goalkeeper Development", "Match Report", "Training Report", "Opposition GK", "Recruitment"].map((t) => ({
