@@ -220,6 +220,7 @@ function ReportForm({ onDone }: { onDone: () => void }) {
   if (!tabIdRef.current) tabIdRef.current = newTabId();
   const localVersionRef = useRef<number>(0);
   const [conflict, setConflict] = useState<ReportDraft | null>(null);
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "failed">("idle");
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const currentSnapshot = (): ReportDraftSnapshot => ({
