@@ -225,6 +225,8 @@ function ReportForm({ onDone }: { onDone: () => void }) {
     setDraftRestoredFrom(null);
   };
 
+  const liveAverage = useMemo(() => averageOfScores(scores), [scores]);
+
   if (done) {
     return (
       <Submitted
