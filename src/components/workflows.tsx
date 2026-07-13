@@ -344,6 +344,7 @@ function ReportForm({ onDone }: { onDone: () => void }) {
       clearDraft(user.id);
       setDraftSavedAt(null);
       setDraftRestoredFrom(null);
+      localVersionRef.current = 0;
       setDone({ report_id: res.report_id, average: res.average });
     } catch (err) {
       // Zod errors from the server come back stringified; surface plainly.
