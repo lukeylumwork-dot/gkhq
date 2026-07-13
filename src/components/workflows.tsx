@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { X, CheckCircle2, Upload, AlertCircle, Paperclip, Search, Trash2 } from "lucide-react";
+import { X, CheckCircle2, Upload, AlertCircle, Paperclip, Search, Trash2, Loader2 } from "lucide-react";
 import { goalkeepers, mentors } from "@/lib/mock-data";
 import { useAuth, type SessionUser } from "@/lib/auth";
 import {
@@ -27,6 +27,41 @@ function formatDraftTime(iso: string): string {
     const t = d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
     return sameDay ? t : `${d.toLocaleDateString()} ${t}`;
   } catch { return iso; }
+}
+
+function DraftStatusIndicator({
+  status,
+  savedAt,
+  onRetry,
+}: {
+  status: "idle" | "saving" | "saved" | "failed";
+  savedAt: string | null;
+  onRetry: () => void;
+}) {
+  if (status === "saving") {
+    return (
+      <span className="inline-flex items-center gap-1 text-muted-foreground">
+        <Loader2 className="size-3 animate-spin" /> Saving…
+      </span>
+    );
+  }
+  if (status === "saved") {
+    return (
+      <span className="inline-flex items-center gap-1 text-green-600">
+        <CheckCircle2 className="size-3" /> Saved
+        {savedAt && <span className="text-muted-foreground">· {formatDraftTime(savedAt)}</span>}
+      </span>
+    );
+  }
+  if (status === "failed") {
+    return (
+      <span className="inline-flex items-center gap-1 text-destructive">
+        <AlertCircle className="size-3" /> Failed to save
+        <button type="button" onClick={onRetry} className="underline hover:text-destructive/80 ml-1">Retry</button>
+      </span>
+    );
+  }
+  return <span className="opacity-60 text-muted-foreground">Autosaves every 5s</span>;
 }
 
 export type WorkflowKind = "interaction" | "report" | "media" | "goalkeeper";
@@ -185,6 +220,7 @@ function ReportForm({ onDone }: { onDone: () => void }) {
   if (!tabIdRef.current) tabIdRef.current = newTabId();
   const localVersionRef = useRef<number>(0);
   const [conflict, setConflict] = useState<ReportDraft | null>(null);
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "failed">("idle");
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const currentSnapshot = (): ReportDraftSnapshot => ({
@@ -211,6 +247,9 @@ function ReportForm({ onDone }: { onDone: () => void }) {
       localVersionRef.current = d.version;
       setDraftSavedAt(d.savedAt);
       setDraftRestoredFrom(d.savedAt);
+      setSaveStatus("saved");
+    } else {
+      setSaveStatus("idle");
     }
     setDraftLoaded(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -239,6 +278,7 @@ function ReportForm({ onDone }: { onDone: () => void }) {
         // No local divergence — silently fast-forward.
         localVersionRef.current = remote.version;
         setDraftSavedAt(remote.savedAt);
+        setSaveStatus("saved");
       }
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -248,18 +288,27 @@ function ReportForm({ onDone }: { onDone: () => void }) {
   useEffect(() => {
     if (!user || !draftLoaded || done || conflict) return;
     const snapshot = currentSnapshot();
-    if (!isDraftMeaningful(snapshot)) return;
+    if (!isDraftMeaningful(snapshot)) {
+      if (saveStatus !== "idle") setSaveStatus("idle");
+      return;
+    }
+    setSaveStatus("saving");
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => {
       const res = saveDraft(user.id, tabIdRef.current, localVersionRef.current, snapshot);
       if (res.ok) {
         localVersionRef.current = res.version;
         setDraftSavedAt(res.savedAt);
-      } else {
+        setSaveStatus("saved");
+      } else if ("conflict" in res) {
         setConflict(res.conflict);
+        setSaveStatus("idle");
+      } else {
+        setSaveStatus("failed");
       }
     }, 5000);
     return () => { if (saveTimer.current) clearTimeout(saveTimer.current); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, draftLoaded, done, conflict, goalkeeper, coach, team, opponent, matchDate, scores, comments, selectedMedia]);
 
   const discardDraft = () => {
@@ -280,15 +329,21 @@ function ReportForm({ onDone }: { onDone: () => void }) {
     setDraftRestoredFrom(null);
     localVersionRef.current = 0;
     setConflict(null);
+    setSaveStatus("idle");
   };
 
   // Conflict resolution actions.
   const keepMine = () => {
     if (!user || !conflict) return;
     const res = overwriteDraft(user.id, tabIdRef.current, currentSnapshot());
-    localVersionRef.current = res.version;
-    setDraftSavedAt(res.savedAt);
-    setConflict(null);
+    if (res.ok) {
+      localVersionRef.current = res.version;
+      setDraftSavedAt(res.savedAt);
+      setConflict(null);
+      setSaveStatus("saved");
+    } else {
+      setSaveStatus("failed");
+    }
   };
   const useTheirs = () => {
     if (!conflict) return;
@@ -297,6 +352,23 @@ function ReportForm({ onDone }: { onDone: () => void }) {
     setDraftSavedAt(conflict.savedAt);
     setDraftRestoredFrom(conflict.savedAt);
     setConflict(null);
+    setSaveStatus("saved");
+  };
+
+  const retrySave = () => {
+    if (!user) return;
+    setSaveStatus("saving");
+    const res = saveDraft(user.id, tabIdRef.current, localVersionRef.current, currentSnapshot());
+    if (res.ok) {
+      localVersionRef.current = res.version;
+      setDraftSavedAt(res.savedAt);
+      setSaveStatus("saved");
+    } else if ("conflict" in res) {
+      setConflict(res.conflict);
+      setSaveStatus("idle");
+    } else {
+      setSaveStatus("failed");
+    }
   };
 
   const liveAverage = useMemo(() => averageOfScores(scores), [scores]);
@@ -345,6 +417,7 @@ function ReportForm({ onDone }: { onDone: () => void }) {
       setDraftSavedAt(null);
       setDraftRestoredFrom(null);
       localVersionRef.current = 0;
+      setSaveStatus("idle");
       setDone({ report_id: res.report_id, average: res.average });
     } catch (err) {
       // Zod errors from the server come back stringified; surface plainly.
@@ -480,17 +553,13 @@ function ReportForm({ onDone }: { onDone: () => void }) {
       )}
       {error && <div className="text-xs text-destructive flex items-start gap-1.5"><AlertCircle className="size-3.5 mt-0.5" />{error}</div>}
       <div className="flex items-center justify-between gap-2 pt-2 border-t border-border/60">
-        <div className="text-[11px] text-muted-foreground flex items-center gap-2 min-h-6">
+        <div className="text-[11px] flex items-center gap-2 min-h-6">
           {draftRestoredFrom && (
             <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-accent/40 text-foreground/80">
               Draft restored from {formatDraftTime(draftRestoredFrom)}
             </span>
           )}
-          {draftSavedAt ? (
-            <span>Draft saved · {formatDraftTime(draftSavedAt)}</span>
-          ) : draftLoaded ? (
-            <span className="opacity-60">Autosaves every 5s</span>
-          ) : null}
+          <DraftStatusIndicator status={saveStatus} savedAt={draftSavedAt} onRetry={retrySave} />
           {draftSavedAt && (
             <button type="button" onClick={discardDraft} disabled={submitting}
               className="inline-flex items-center gap-1 text-muted-foreground hover:text-destructive">
