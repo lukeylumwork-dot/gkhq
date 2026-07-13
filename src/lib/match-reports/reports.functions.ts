@@ -21,16 +21,10 @@ import {
   type MatchReportRow,
 } from "./schema";
 
-type Role = "super_admin" | "admin" | "mentor_manager" | "mentor";
+// NOTE: helpers used inside `createServerFn` handlers must be declared inside the
+// handler or in a separate imported module — the splitter deletes sibling module-
+// scope consts before shipping. See tanstack-serverfn-splitting.
 
-const CAN_SUBMIT: Role[] = ["super_admin", "mentor_manager", "mentor"];
-const CAN_OVERRIDE_COACH: Role[] = ["super_admin", "admin", "mentor_manager"];
-
-const actorSchema = z.object({
-  id: z.string().min(1),
-  name: z.string().min(1),
-  role: z.enum(["super_admin", "admin", "mentor_manager", "mentor"]),
-});
 
 // ---------------------------------------------------------------------------
 // listMatchReports
