@@ -2,8 +2,9 @@ import { createFileRoute } from "@tanstack/react-router";
 import { PageHeader, Card, Pill, Avatar } from "@/components/primitives";
 import { interactions, getGk, getMentor, formatDate, formatRelative } from "@/lib/mock-data";
 import { useState } from "react";
+import { withPermission } from "@/components/require-permission";
 
-export const Route = createFileRoute("/interactions")({ component: InteractionsPage });
+export const Route = createFileRoute("/interactions")({ component: withPermission(InteractionsPage, "interactions.view") });
 
 const TYPES = ["All", "Live Match Observation", "Training Ground Visit", "Face to Face", "Video Review Session", "Phone Call", "WhatsApp Feedback", "Development Meeting", "Scouting Assignment"] as const;
 
