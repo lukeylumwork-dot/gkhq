@@ -553,17 +553,13 @@ function ReportForm({ onDone }: { onDone: () => void }) {
       )}
       {error && <div className="text-xs text-destructive flex items-start gap-1.5"><AlertCircle className="size-3.5 mt-0.5" />{error}</div>}
       <div className="flex items-center justify-between gap-2 pt-2 border-t border-border/60">
-        <div className="text-[11px] text-muted-foreground flex items-center gap-2 min-h-6">
+        <div className="text-[11px] flex items-center gap-2 min-h-6">
           {draftRestoredFrom && (
             <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-accent/40 text-foreground/80">
               Draft restored from {formatDraftTime(draftRestoredFrom)}
             </span>
           )}
-          {draftSavedAt ? (
-            <span>Draft saved · {formatDraftTime(draftSavedAt)}</span>
-          ) : draftLoaded ? (
-            <span className="opacity-60">Autosaves every 5s</span>
-          ) : null}
+          <DraftStatusIndicator status={saveStatus} savedAt={draftSavedAt} onRetry={retrySave} />
           {draftSavedAt && (
             <button type="button" onClick={discardDraft} disabled={submitting}
               className="inline-flex items-center gap-1 text-muted-foreground hover:text-destructive">
