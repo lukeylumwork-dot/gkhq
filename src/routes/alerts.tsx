@@ -4,8 +4,9 @@ import { alerts, getGk, formatRelative } from "@/lib/mock-data";
 import { AlertTriangle, Mail, Send, Check, Trash2 } from "lucide-react";
 import { useNotifications, type EmailFrequency } from "@/lib/notifications";
 import { useState } from "react";
+import { withPermission } from "@/components/require-permission";
 
-export const Route = createFileRoute("/alerts")({ component: AlertsPage });
+export const Route = createFileRoute("/alerts")({ component: withPermission(AlertsPage, "alerts.view") });
 
 function AlertsPage() {
   const high = alerts.filter((a) => a.severity === "high").length;
