@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { X, CheckCircle2, Upload, AlertCircle, Paperclip, Search, Trash2, Loader2 } from "lucide-react";
 import { goalkeepers, mentors } from "@/lib/mock-data";
@@ -513,44 +513,94 @@ function ReportForm({ onDone }: { onDone: () => void }) {
         user={user}
       />
 
-      {conflict && (
-        <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 space-y-2">
-          <div className="flex items-start gap-2">
-            <AlertCircle className="size-4 mt-0.5 text-amber-500 shrink-0" />
-            <div className="text-xs leading-relaxed">
-              <div className="font-semibold text-foreground">Draft conflict detected</div>
-              <div className="text-muted-foreground mt-0.5">
-                Another tab saved this draft at <strong>{formatDraftTime(conflict.savedAt)}</strong>{" "}
-                (v{conflict.version}). Your unsaved changes here haven't been saved. Choose which version to keep — autosave is paused until you decide.
-              </div>
-              <div className="mt-1 grid grid-cols-2 gap-2 text-[11px]">
-                <div className="rounded border border-border/60 bg-background/60 p-2">
-                  <div className="uppercase tracking-wider text-muted-foreground mb-1">Other tab</div>
-                  <div className="truncate"><span className="text-muted-foreground">GK:</span> {conflict.goalkeeper || "—"}</div>
-                  <div className="truncate"><span className="text-muted-foreground">Opponent:</span> {conflict.opponent || "—"}</div>
-                  <div className="truncate"><span className="text-muted-foreground">Comments:</span> {conflict.comments ? `${conflict.comments.slice(0, 40)}${conflict.comments.length > 40 ? "…" : ""}` : "—"}</div>
+      {conflict && (() => {
+        const mineSnap = { goalkeeper, coach, team, opponent, matchDate, scores, comments, selectedMedia };
+        const fmt = (v: unknown): string => {
+          if (v == null || v === "") return "—";
+          if (Array.isArray(v)) return v.length ? `${v.length} item${v.length === 1 ? "" : "s"}` : "—";
+          return String(v);
+        };
+        type Row = { key: string; label: string; mine: string; theirs: string };
+        const rows: Row[] = [];
+        const push = (key: string, label: string, m: unknown, t: unknown) => {
+          const ms = fmt(m); const ts = fmt(t);
+          if (ms !== ts) rows.push({ key, label, mine: ms, theirs: ts });
+        };
+        push("goalkeeper", "Goalkeeper", mineSnap.goalkeeper, conflict.goalkeeper);
+        push("coach", "Coach", mineSnap.coach, conflict.coach);
+        push("team", "Team", mineSnap.team, conflict.team);
+        push("opponent", "Opponent", mineSnap.opponent, conflict.opponent);
+        push("matchDate", "Match date", mineSnap.matchDate, conflict.matchDate);
+        for (const pid of PILLAR_IDS) {
+          push(`score.${pid}`, PILLAR_LABELS[pid], mineSnap.scores[pid], conflict.scores?.[pid]);
+        }
+        const truncate = (s: string, n = 60) => s.length > n ? `${s.slice(0, n)}…` : s;
+        if ((mineSnap.comments || "") !== (conflict.comments || "")) {
+          rows.push({ key: "comments", label: "Comments",
+            mine: mineSnap.comments ? truncate(mineSnap.comments) : "—",
+            theirs: conflict.comments ? truncate(conflict.comments) : "—" });
+        }
+        const mineMedia = [...mineSnap.selectedMedia].sort().join("|");
+        const theirMedia = [...(conflict.selectedMedia ?? [])].sort().join("|");
+        if (mineMedia !== theirMedia) {
+          rows.push({ key: "media", label: "Media attachments",
+            mine: mineSnap.selectedMedia.length ? `${mineSnap.selectedMedia.length} attached` : "—",
+            theirs: conflict.selectedMedia?.length ? `${conflict.selectedMedia.length} attached` : "—" });
+        }
+        return (
+          <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 space-y-2">
+            <div className="flex items-start gap-2">
+              <AlertCircle className="size-4 mt-0.5 text-amber-500 shrink-0" />
+              <div className="text-xs leading-relaxed flex-1 min-w-0">
+                <div className="font-semibold text-foreground">
+                  Draft conflict detected
+                  <span className="ml-2 font-normal text-muted-foreground">
+                    {rows.length} field{rows.length === 1 ? "" : "s"} changed
+                  </span>
                 </div>
-                <div className="rounded border border-border/60 bg-background/60 p-2">
-                  <div className="uppercase tracking-wider text-muted-foreground mb-1">This tab</div>
-                  <div className="truncate"><span className="text-muted-foreground">GK:</span> {goalkeeper || "—"}</div>
-                  <div className="truncate"><span className="text-muted-foreground">Opponent:</span> {opponent || "—"}</div>
-                  <div className="truncate"><span className="text-muted-foreground">Comments:</span> {comments ? `${comments.slice(0, 40)}${comments.length > 40 ? "…" : ""}` : "—"}</div>
+                <div className="text-muted-foreground mt-0.5">
+                  Another tab saved this draft at <strong>{formatDraftTime(conflict.savedAt)}</strong>{" "}
+                  (v{conflict.version}). Choose which version to keep — autosave is paused until you decide.
                 </div>
+                {rows.length === 0 ? (
+                  <div className="mt-2 text-[11px] text-muted-foreground italic">
+                    No visible field differences — versions diverged but content matches.
+                  </div>
+                ) : (
+                  <div className="mt-2 overflow-hidden rounded border border-border/60">
+                    <div className="grid grid-cols-[minmax(0,7rem)_minmax(0,1fr)_minmax(0,1fr)] text-[11px]">
+                      <div className="bg-background/70 px-2 py-1 font-medium text-muted-foreground uppercase tracking-wider">Field</div>
+                      <div className="bg-background/70 px-2 py-1 font-medium text-muted-foreground uppercase tracking-wider border-l border-border/60">This tab</div>
+                      <div className="bg-background/70 px-2 py-1 font-medium text-muted-foreground uppercase tracking-wider border-l border-border/60">Other tab</div>
+                      {rows.map((r) => (
+                        <Fragment key={r.key}>
+                          <div className="px-2 py-1 border-t border-border/60 text-foreground/80 truncate">{r.label}</div>
+                          <div className="px-2 py-1 border-t border-l border-border/60 bg-amber-500/5">
+                            <span className="rounded px-1 bg-amber-500/20 text-foreground break-words">{r.mine}</span>
+                          </div>
+                          <div className="px-2 py-1 border-t border-l border-border/60 bg-amber-500/5">
+                            <span className="rounded px-1 bg-amber-500/20 text-foreground break-words">{r.theirs}</span>
+                          </div>
+                        </Fragment>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
+            <div className="flex flex-wrap gap-2 justify-end">
+              <button type="button" onClick={useTheirs}
+                className="h-8 px-3 rounded-md border border-border text-xs">
+                Use other tab's version
+              </button>
+              <button type="button" onClick={keepMine}
+                className="h-8 px-3 rounded-md bg-primary text-primary-foreground text-xs font-medium">
+                Keep this tab's version
+              </button>
+            </div>
           </div>
-          <div className="flex flex-wrap gap-2 justify-end">
-            <button type="button" onClick={useTheirs}
-              className="h-8 px-3 rounded-md border border-border text-xs">
-              Use other tab's version
-            </button>
-            <button type="button" onClick={keepMine}
-              className="h-8 px-3 rounded-md bg-primary text-primary-foreground text-xs font-medium">
-              Keep this tab's version
-            </button>
-          </div>
-        </div>
-      )}
+        );
+      })()}
       {error && <div className="text-xs text-destructive flex items-start gap-1.5"><AlertCircle className="size-3.5 mt-0.5" />{error}</div>}
       <div className="flex items-center justify-between gap-2 pt-2 border-t border-border/60">
         <div className="text-[11px] flex items-center gap-2 min-h-6">
