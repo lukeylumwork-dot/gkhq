@@ -14,7 +14,9 @@ import {
   PILLAR_IDS, PILLAR_LABELS, averageOfScores, type PillarId,
 } from "@/lib/match-reports/schema";
 import {
-  loadDraft, saveDraft, clearDraft, isDraftMeaningful,
+  loadDraft, saveDraft, overwriteDraft, clearDraft, isDraftMeaningful,
+  subscribeDraftChanges, newTabId,
+  type ReportDraft, type ReportDraftSnapshot,
 } from "@/lib/match-reports/draft-store";
 
 function formatDraftTime(iso: string): string {
@@ -175,25 +177,38 @@ function ReportForm({ onDone }: { onDone: () => void }) {
     if (!canOverrideCoach && user?.name) setCoach(user.name);
   }, [canOverrideCoach, user?.name]);
 
-  // ---------------- Draft persistence (localStorage, 5s debounce) ----------------
+  // ---------------- Draft persistence + versioning (localStorage) ----------------
   const [draftLoaded, setDraftLoaded] = useState(false);
   const [draftSavedAt, setDraftSavedAt] = useState<string | null>(null);
   const [draftRestoredFrom, setDraftRestoredFrom] = useState<string | null>(null);
+  const tabIdRef = useRef<string>("");
+  if (!tabIdRef.current) tabIdRef.current = newTabId();
+  const localVersionRef = useRef<number>(0);
+  const [conflict, setConflict] = useState<ReportDraft | null>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const currentSnapshot = (): ReportDraftSnapshot => ({
+    goalkeeper, coach, team, opponent, matchDate, scores, comments, selectedMedia,
+  });
+
+  const applySnapshot = (d: ReportDraftSnapshot) => {
+    setGoalkeeper(d.goalkeeper);
+    if (canOverrideCoach) setCoach(d.coach);
+    setTeam(d.team);
+    setOpponent(d.opponent);
+    if (d.matchDate) setMatchDate(d.matchDate);
+    setScores(d.scores);
+    setComments(d.comments);
+    setSelectedMedia(d.selectedMedia);
+  };
 
   // Restore on mount.
   useEffect(() => {
     if (!user) return;
     const d = loadDraft(user.id);
     if (d) {
-      setGoalkeeper(d.goalkeeper);
-      if (canOverrideCoach) setCoach(d.coach);
-      setTeam(d.team);
-      setOpponent(d.opponent);
-      if (d.matchDate) setMatchDate(d.matchDate);
-      setScores(d.scores);
-      setComments(d.comments);
-      setSelectedMedia(d.selectedMedia);
+      applySnapshot(d);
+      localVersionRef.current = d.version;
       setDraftSavedAt(d.savedAt);
       setDraftRestoredFrom(d.savedAt);
     }
@@ -201,21 +216,51 @@ function ReportForm({ onDone }: { onDone: () => void }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
-  // Autosave (debounced 5s) whenever a tracked field changes.
+  // Cross-tab watcher: another tab wrote to the same draft slot.
   useEffect(() => {
-    if (!user || !draftLoaded || done) return;
-    const snapshot = {
-      goalkeeper, coach, team, opponent, matchDate,
-      scores, comments, selectedMedia,
-    };
+    if (!user) return;
+    return subscribeDraftChanges(user.id, (remote) => {
+      if (!remote) return; // remote cleared (submit/discard elsewhere)
+      if (remote.tabId === tabIdRef.current) return; // our own write echoed
+      if (remote.version <= localVersionRef.current) return; // stale
+      // Only raise conflict if our unsaved snapshot actually differs.
+      const mine = currentSnapshot();
+      const differs =
+        mine.goalkeeper !== remote.goalkeeper ||
+        mine.coach !== remote.coach ||
+        mine.team !== remote.team ||
+        mine.opponent !== remote.opponent ||
+        mine.matchDate !== remote.matchDate ||
+        mine.comments !== remote.comments ||
+        JSON.stringify(mine.scores) !== JSON.stringify(remote.scores) ||
+        JSON.stringify(mine.selectedMedia) !== JSON.stringify(remote.selectedMedia);
+      if (differs) setConflict(remote);
+      else {
+        // No local divergence — silently fast-forward.
+        localVersionRef.current = remote.version;
+        setDraftSavedAt(remote.savedAt);
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
+
+  // Autosave (debounced 5s). Blocked while a conflict is pending.
+  useEffect(() => {
+    if (!user || !draftLoaded || done || conflict) return;
+    const snapshot = currentSnapshot();
     if (!isDraftMeaningful(snapshot)) return;
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => {
-      const savedAt = saveDraft(user.id, snapshot);
-      setDraftSavedAt(savedAt);
+      const res = saveDraft(user.id, tabIdRef.current, localVersionRef.current, snapshot);
+      if (res.ok) {
+        localVersionRef.current = res.version;
+        setDraftSavedAt(res.savedAt);
+      } else {
+        setConflict(res.conflict);
+      }
     }, 5000);
     return () => { if (saveTimer.current) clearTimeout(saveTimer.current); };
-  }, [user, draftLoaded, done, goalkeeper, coach, team, opponent, matchDate, scores, comments, selectedMedia]);
+  }, [user, draftLoaded, done, conflict, goalkeeper, coach, team, opponent, matchDate, scores, comments, selectedMedia]);
 
   const discardDraft = () => {
     if (!user) return;
@@ -233,6 +278,25 @@ function ReportForm({ onDone }: { onDone: () => void }) {
     setSelectedMedia([]);
     setDraftSavedAt(null);
     setDraftRestoredFrom(null);
+    localVersionRef.current = 0;
+    setConflict(null);
+  };
+
+  // Conflict resolution actions.
+  const keepMine = () => {
+    if (!user || !conflict) return;
+    const res = overwriteDraft(user.id, tabIdRef.current, currentSnapshot());
+    localVersionRef.current = res.version;
+    setDraftSavedAt(res.savedAt);
+    setConflict(null);
+  };
+  const useTheirs = () => {
+    if (!conflict) return;
+    applySnapshot(conflict);
+    localVersionRef.current = conflict.version;
+    setDraftSavedAt(conflict.savedAt);
+    setDraftRestoredFrom(conflict.savedAt);
+    setConflict(null);
   };
 
   const liveAverage = useMemo(() => averageOfScores(scores), [scores]);
@@ -280,6 +344,7 @@ function ReportForm({ onDone }: { onDone: () => void }) {
       clearDraft(user.id);
       setDraftSavedAt(null);
       setDraftRestoredFrom(null);
+      localVersionRef.current = 0;
       setDone({ report_id: res.report_id, average: res.average });
     } catch (err) {
       // Zod errors from the server come back stringified; surface plainly.
@@ -375,6 +440,44 @@ function ReportForm({ onDone }: { onDone: () => void }) {
         user={user}
       />
 
+      {conflict && (
+        <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 space-y-2">
+          <div className="flex items-start gap-2">
+            <AlertCircle className="size-4 mt-0.5 text-amber-500 shrink-0" />
+            <div className="text-xs leading-relaxed">
+              <div className="font-semibold text-foreground">Draft conflict detected</div>
+              <div className="text-muted-foreground mt-0.5">
+                Another tab saved this draft at <strong>{formatDraftTime(conflict.savedAt)}</strong>{" "}
+                (v{conflict.version}). Your unsaved changes here haven't been saved. Choose which version to keep — autosave is paused until you decide.
+              </div>
+              <div className="mt-1 grid grid-cols-2 gap-2 text-[11px]">
+                <div className="rounded border border-border/60 bg-background/60 p-2">
+                  <div className="uppercase tracking-wider text-muted-foreground mb-1">Other tab</div>
+                  <div className="truncate"><span className="text-muted-foreground">GK:</span> {conflict.goalkeeper || "—"}</div>
+                  <div className="truncate"><span className="text-muted-foreground">Opponent:</span> {conflict.opponent || "—"}</div>
+                  <div className="truncate"><span className="text-muted-foreground">Comments:</span> {conflict.comments ? `${conflict.comments.slice(0, 40)}${conflict.comments.length > 40 ? "…" : ""}` : "—"}</div>
+                </div>
+                <div className="rounded border border-border/60 bg-background/60 p-2">
+                  <div className="uppercase tracking-wider text-muted-foreground mb-1">This tab</div>
+                  <div className="truncate"><span className="text-muted-foreground">GK:</span> {goalkeeper || "—"}</div>
+                  <div className="truncate"><span className="text-muted-foreground">Opponent:</span> {opponent || "—"}</div>
+                  <div className="truncate"><span className="text-muted-foreground">Comments:</span> {comments ? `${comments.slice(0, 40)}${comments.length > 40 ? "…" : ""}` : "—"}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2 justify-end">
+            <button type="button" onClick={useTheirs}
+              className="h-8 px-3 rounded-md border border-border text-xs">
+              Use other tab's version
+            </button>
+            <button type="button" onClick={keepMine}
+              className="h-8 px-3 rounded-md bg-primary text-primary-foreground text-xs font-medium">
+              Keep this tab's version
+            </button>
+          </div>
+        </div>
+      )}
       {error && <div className="text-xs text-destructive flex items-start gap-1.5"><AlertCircle className="size-3.5 mt-0.5" />{error}</div>}
       <div className="flex items-center justify-between gap-2 pt-2 border-t border-border/60">
         <div className="text-[11px] text-muted-foreground flex items-center gap-2 min-h-6">
