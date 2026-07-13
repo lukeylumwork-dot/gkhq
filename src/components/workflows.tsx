@@ -131,37 +131,84 @@ function InteractionForm({ onDone }: { onDone: () => void }) {
   );
 }
 
-const REPORT_TYPES_FOR_ATTACH = new Set(["Training Report", "Match Report", "Recruitment"]);
-
+/**
+ * Match Report form — writes to the RPM Match Reports Google Sheet via
+ * a server function. Fields locked to the confirmed 14-column schema.
+ */
 function ReportForm({ onDone }: { onDone: () => void }) {
   const { user } = useAuth();
-  const [done, setDone] = useState(false);
-  const [scores, setScores] = useState({ handling: 7, distribution: 7, aerial: 7, oneVone: 7, communication: 7 });
-  const [type, setType] = useState<string>("Training Report");
-  const [gkId, setGkId] = useState<string>(goalkeepers[0]?.id ?? "");
+  const submitFn = useServerFn(submitMatchReport);
+
+  const canOverrideCoach = !!user && (user.role === "super_admin" || user.role === "admin" || user.role === "mentor_manager");
+
+  const [done, setDone] = useState<{ report_id: string; average: number } | null>(null);
+  const [goalkeeper, setGoalkeeper] = useState("");
+  const [coach, setCoach] = useState(user?.name ?? "");
+  const [team, setTeam] = useState("");
+  const [opponent, setOpponent] = useState("");
+  const [matchDate, setMatchDate] = useState(new Date().toISOString().slice(0, 10));
+  const [scores, setScores] = useState<Record<PillarId, number>>({
+    protect_goal: 3, protect_space: 3, protect_air: 3,
+    control_play: 3, change_play: 3, psych: 3, physical: 3,
+  });
+  const [comments, setComments] = useState("");
   const [selectedMedia, setSelectedMedia] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
-  const types = ["Goalkeeper Development", "Match Report", "Training Report", "Opposition GK", "Recruitment"];
+  // Keep coach field synced with the signed-in user (non-managers only).
+  useEffect(() => {
+    if (!canOverrideCoach && user?.name) setCoach(user.name);
+  }, [canOverrideCoach, user?.name]);
 
-  useEffect(() => { if (!types.includes(type)) setType(types[0]); }, [user]); // eslint-disable-line
+  const liveAverage = useMemo(() => averageOfScores(scores), [scores]);
 
-  const allowAttach = REPORT_TYPES_FOR_ATTACH.has(type);
+  if (done) {
+    return (
+      <Submitted
+        message={`Match report saved to Google Sheet · Average ${done.average.toFixed(1)}`}
+        onDone={onDone}
+      />
+    );
+  }
 
-  if (done) return <Submitted message="Report submitted with attachments." onDone={onDone} />;
+  const setScore = (id: PillarId, v: number) =>
+    setScores((s) => ({ ...s, [id]: Math.max(1, Math.min(5, Math.round(v))) }));
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user) { setError("You must be signed in."); return; }
     setError(null);
+    setFieldErrors({});
     setSubmitting(true);
     try {
-      // Reports themselves are mock; we persist attachments under a generated id.
-      const reportId = `r-new-${crypto.randomUUID()}`;
-      if (selectedMedia.length) await attachMediaToReport(reportId, selectedMedia, user);
-      setDone(true);
+      const res = await submitFn({
+        data: {
+          actor: { id: user.id, name: user.name, role: user.role },
+          payload: {
+            goalkeeper: goalkeeper.trim(),
+            coach: coach.trim(),
+            team: team.trim(),
+            opponent: opponent.trim(),
+            match_date: matchDate,
+            ...scores,
+            comments: comments.trim(),
+          },
+        },
+      });
+
+      // Attach any media picked while composing.
+      if (selectedMedia.length) {
+        try { await attachMediaToReport(res.report_id, selectedMedia, user); }
+        catch (mErr) { console.error("[report] attach media failed:", mErr); }
+      }
+      window.dispatchEvent(new CustomEvent("rpm:report-submitted"));
+      setDone({ report_id: res.report_id, average: res.average });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not submit report.");
+      // Zod errors from the server come back stringified; surface plainly.
+      const msg = err instanceof Error ? err.message : "Could not submit report.";
+      setError(msg);
     } finally {
       setSubmitting(false);
     }
@@ -170,46 +217,93 @@ function ReportForm({ onDone }: { onDone: () => void }) {
   return (
     <form onSubmit={onSubmit} className="space-y-4">
       <div className="grid grid-cols-2 gap-3">
-        <Field label="Report Type">
-          <select className={selectCls} required value={type} onChange={(e) => setType(e.target.value)}>
-            {types.map((t) => <option key={t}>{t}</option>)}
-          </select>
+        <Field label="Goalkeeper *">
+          <input className={inputCls} required list="mr-gk-suggestions" value={goalkeeper}
+            onChange={(e) => setGoalkeeper(e.target.value)}
+            placeholder="e.g. James Beadle" maxLength={80} />
+          <datalist id="mr-gk-suggestions">
+            {goalkeepers.map((g) => <option key={g.id} value={g.name} />)}
+          </datalist>
         </Field>
-        <Field label="Goalkeeper">
-          <select className={selectCls} required value={gkId} onChange={(e) => setGkId(e.target.value)}>
-            {goalkeepers.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
-          </select>
+        <Field label={`Coach *${canOverrideCoach ? "" : " (you)"}`}>
+          <input className={inputCls} required value={coach} disabled={!canOverrideCoach}
+            list="mr-coach-suggestions"
+            onChange={(e) => setCoach(e.target.value)} maxLength={80} />
+          <datalist id="mr-coach-suggestions">
+            {mentors.map((m) => <option key={m.id} value={m.name} />)}
+          </datalist>
         </Field>
-        <Field label="Date"><input type="date" className={inputCls} defaultValue={new Date().toISOString().slice(0, 10)} /></Field>
-        <Field label="Overall Rating (0–100)"><input type="number" min={0} max={100} defaultValue={75} className={inputCls} /></Field>
+        <Field label="Team *">
+          <input className={inputCls} required value={team} onChange={(e) => setTeam(e.target.value)}
+            placeholder="e.g. England U21" maxLength={80} />
+        </Field>
+        <Field label="Opponent *">
+          <input className={inputCls} required value={opponent} onChange={(e) => setOpponent(e.target.value)}
+            placeholder="e.g. Moldova" maxLength={80} />
+        </Field>
+        <Field label="Match Date *">
+          <input type="date" className={inputCls} required value={matchDate}
+            max={new Date().toISOString().slice(0, 10)}
+            onChange={(e) => setMatchDate(e.target.value)} />
+        </Field>
+        <Field label="Average of scores">
+          <div className="h-9 px-3 rounded-md border border-border/60 bg-muted/40 flex items-center text-sm font-semibold tabular-nums">
+            {liveAverage.toFixed(1)}
+          </div>
+        </Field>
       </div>
+
       <div>
-        <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium mb-2">Structured Scoring (0–10)</div>
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
-          {Object.entries(scores).map(([k, v]) => (
-            <div key={k}>
-              <label className="text-[10px] text-muted-foreground capitalize">{k.replace(/([A-Z])/g, " $1")}</label>
-              <input type="number" min={0} max={10} value={v} onChange={(e) => setScores({ ...scores, [k]: Number(e.target.value) })} className={inputCls} />
+        <div className="flex items-baseline justify-between mb-2">
+          <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">
+            RPM Pillar Scores (1–5)
+          </div>
+          <div className="text-[10px] text-muted-foreground">1 = poor · 5 = excellent</div>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          {PILLAR_IDS.map((id) => (
+            <div key={id} className="flex items-center justify-between gap-3 px-3 py-2 rounded-md border border-border/60 bg-input/40">
+              <label className="text-xs text-foreground/90 leading-tight">{PILLAR_LABELS[id]}</label>
+              <div className="flex items-center gap-1">
+                {[1, 2, 3, 4, 5].map((n) => {
+                  const active = scores[id] === n;
+                  return (
+                    <button key={n} type="button" onClick={() => setScore(id, n)}
+                      className={`size-7 rounded text-xs font-semibold tabular-nums transition-colors ${
+                        active ? "bg-primary text-primary-foreground" : "bg-background border border-border text-muted-foreground hover:bg-accent/40"
+                      }`}>{n}</button>
+                  );
+                })}
+              </div>
             </div>
           ))}
         </div>
       </div>
-      <Field label="Written Observations"><textarea rows={5} className={taCls} placeholder="Summary, key moments, strengths, areas to develop…" required /></Field>
 
-      {allowAttach && (
-        <MediaAttachPicker
-          gkId={gkId}
-          selected={selectedMedia}
-          onChange={setSelectedMedia}
-          user={user}
-        />
-      )}
+      <HandwrittenNotesField
+        context={goalkeeper ? `Match notes on ${goalkeeper} vs ${opponent || "opponent"}` : undefined}
+        onTranscribed={(text, mode) =>
+          setComments((prev) => (mode === "replace" || !prev.trim() ? text : `${prev.trim()}\n\n${text}`))
+        }
+      />
+      <Field label="Comments">
+        <textarea rows={5} className={taCls} value={comments}
+          onChange={(e) => setComments(e.target.value)} maxLength={5000}
+          placeholder="What did you see? Key moments, strengths, areas to develop…" />
+      </Field>
 
-      {error && <div className="text-xs text-red-400">{error}</div>}
+      <MediaAttachPicker
+        gkId={goalkeepers.find((g) => g.name === goalkeeper)?.id ?? ""}
+        selected={selectedMedia}
+        onChange={setSelectedMedia}
+        user={user}
+      />
+
+      {error && <div className="text-xs text-destructive flex items-start gap-1.5"><AlertCircle className="size-3.5 mt-0.5" />{error}</div>}
       <div className="flex justify-end gap-2 pt-2">
         <button type="button" onClick={onDone} className="h-9 px-3 rounded-md border border-border text-sm" disabled={submitting}>Cancel</button>
         <button type="submit" disabled={submitting} className="h-9 px-4 rounded-md bg-primary text-primary-foreground text-sm font-medium disabled:opacity-60">
-          {submitting ? "Submitting…" : "Submit Report"}
+          {submitting ? "Saving to Sheet…" : "Submit Match Report"}
         </button>
       </div>
     </form>
