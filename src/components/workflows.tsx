@@ -366,11 +366,31 @@ function ReportForm({ onDone }: { onDone: () => void }) {
       />
 
       {error && <div className="text-xs text-destructive flex items-start gap-1.5"><AlertCircle className="size-3.5 mt-0.5" />{error}</div>}
-      <div className="flex justify-end gap-2 pt-2">
-        <button type="button" onClick={onDone} className="h-9 px-3 rounded-md border border-border text-sm" disabled={submitting}>Cancel</button>
-        <button type="submit" disabled={submitting} className="h-9 px-4 rounded-md bg-primary text-primary-foreground text-sm font-medium disabled:opacity-60">
-          {submitting ? "Saving to Sheet…" : "Submit Match Report"}
-        </button>
+      <div className="flex items-center justify-between gap-2 pt-2 border-t border-border/60">
+        <div className="text-[11px] text-muted-foreground flex items-center gap-2 min-h-6">
+          {draftRestoredFrom && (
+            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-accent/40 text-foreground/80">
+              Draft restored from {formatDraftTime(draftRestoredFrom)}
+            </span>
+          )}
+          {draftSavedAt ? (
+            <span>Draft saved · {formatDraftTime(draftSavedAt)}</span>
+          ) : draftLoaded ? (
+            <span className="opacity-60">Autosaves every 5s</span>
+          ) : null}
+          {draftSavedAt && (
+            <button type="button" onClick={discardDraft} disabled={submitting}
+              className="inline-flex items-center gap-1 text-muted-foreground hover:text-destructive">
+              <Trash2 className="size-3" /> Discard draft
+            </button>
+          )}
+        </div>
+        <div className="flex gap-2">
+          <button type="button" onClick={onDone} className="h-9 px-3 rounded-md border border-border text-sm" disabled={submitting}>Cancel</button>
+          <button type="submit" disabled={submitting} className="h-9 px-4 rounded-md bg-primary text-primary-foreground text-sm font-medium disabled:opacity-60">
+            {submitting ? "Saving to Sheet…" : "Submit Match Report"}
+          </button>
+        </div>
       </div>
     </form>
   );
