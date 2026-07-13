@@ -59,10 +59,10 @@ export function AppShell() {
     <div className="flex min-h-screen bg-background text-foreground">
       <aside className="hidden md:flex w-60 shrink-0 flex-col border-r border-sidebar-border bg-sidebar">
         <div className="flex items-center gap-2 px-5 h-14 border-b border-sidebar-border">
-          <div className="size-7 rounded-md bg-primary text-primary-foreground grid place-items-center font-bold text-sm">AM</div>
-          <div className="flex flex-col leading-tight">
-            <span className="text-sm font-semibold tracking-tight">Andy Marshall</span>
-            <span className="text-[10px] uppercase tracking-wider text-muted-foreground">MENTOR</span>
+          <div className="size-7 rounded-md bg-primary text-primary-foreground grid place-items-center font-bold text-sm">{user.initials}</div>
+          <div className="flex flex-col leading-tight min-w-0">
+            <span className="text-sm font-semibold tracking-tight truncate">{user.name}</span>
+            <span className="text-[10px] uppercase tracking-wider text-muted-foreground truncate">{ROLE_LABEL[user.role]}</span>
           </div>
         </div>
         <nav className="flex-1 p-2 space-y-0.5 overflow-y-auto">
