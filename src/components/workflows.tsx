@@ -177,25 +177,38 @@ function ReportForm({ onDone }: { onDone: () => void }) {
     if (!canOverrideCoach && user?.name) setCoach(user.name);
   }, [canOverrideCoach, user?.name]);
 
-  // ---------------- Draft persistence (localStorage, 5s debounce) ----------------
+  // ---------------- Draft persistence + versioning (localStorage) ----------------
   const [draftLoaded, setDraftLoaded] = useState(false);
   const [draftSavedAt, setDraftSavedAt] = useState<string | null>(null);
   const [draftRestoredFrom, setDraftRestoredFrom] = useState<string | null>(null);
+  const tabIdRef = useRef<string>("");
+  if (!tabIdRef.current) tabIdRef.current = newTabId();
+  const localVersionRef = useRef<number>(0);
+  const [conflict, setConflict] = useState<ReportDraft | null>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const currentSnapshot = (): ReportDraftSnapshot => ({
+    goalkeeper, coach, team, opponent, matchDate, scores, comments, selectedMedia,
+  });
+
+  const applySnapshot = (d: ReportDraftSnapshot) => {
+    setGoalkeeper(d.goalkeeper);
+    if (canOverrideCoach) setCoach(d.coach);
+    setTeam(d.team);
+    setOpponent(d.opponent);
+    if (d.matchDate) setMatchDate(d.matchDate);
+    setScores(d.scores);
+    setComments(d.comments);
+    setSelectedMedia(d.selectedMedia);
+  };
 
   // Restore on mount.
   useEffect(() => {
     if (!user) return;
     const d = loadDraft(user.id);
     if (d) {
-      setGoalkeeper(d.goalkeeper);
-      if (canOverrideCoach) setCoach(d.coach);
-      setTeam(d.team);
-      setOpponent(d.opponent);
-      if (d.matchDate) setMatchDate(d.matchDate);
-      setScores(d.scores);
-      setComments(d.comments);
-      setSelectedMedia(d.selectedMedia);
+      applySnapshot(d);
+      localVersionRef.current = d.version;
       setDraftSavedAt(d.savedAt);
       setDraftRestoredFrom(d.savedAt);
     }
@@ -203,21 +216,51 @@ function ReportForm({ onDone }: { onDone: () => void }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
-  // Autosave (debounced 5s) whenever a tracked field changes.
+  // Cross-tab watcher: another tab wrote to the same draft slot.
   useEffect(() => {
-    if (!user || !draftLoaded || done) return;
-    const snapshot = {
-      goalkeeper, coach, team, opponent, matchDate,
-      scores, comments, selectedMedia,
-    };
+    if (!user) return;
+    return subscribeDraftChanges(user.id, (remote) => {
+      if (!remote) return; // remote cleared (submit/discard elsewhere)
+      if (remote.tabId === tabIdRef.current) return; // our own write echoed
+      if (remote.version <= localVersionRef.current) return; // stale
+      // Only raise conflict if our unsaved snapshot actually differs.
+      const mine = currentSnapshot();
+      const differs =
+        mine.goalkeeper !== remote.goalkeeper ||
+        mine.coach !== remote.coach ||
+        mine.team !== remote.team ||
+        mine.opponent !== remote.opponent ||
+        mine.matchDate !== remote.matchDate ||
+        mine.comments !== remote.comments ||
+        JSON.stringify(mine.scores) !== JSON.stringify(remote.scores) ||
+        JSON.stringify(mine.selectedMedia) !== JSON.stringify(remote.selectedMedia);
+      if (differs) setConflict(remote);
+      else {
+        // No local divergence — silently fast-forward.
+        localVersionRef.current = remote.version;
+        setDraftSavedAt(remote.savedAt);
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
+
+  // Autosave (debounced 5s). Blocked while a conflict is pending.
+  useEffect(() => {
+    if (!user || !draftLoaded || done || conflict) return;
+    const snapshot = currentSnapshot();
     if (!isDraftMeaningful(snapshot)) return;
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => {
-      const savedAt = saveDraft(user.id, snapshot);
-      setDraftSavedAt(savedAt);
+      const res = saveDraft(user.id, tabIdRef.current, localVersionRef.current, snapshot);
+      if (res.ok) {
+        localVersionRef.current = res.version;
+        setDraftSavedAt(res.savedAt);
+      } else {
+        setConflict(res.conflict);
+      }
     }, 5000);
     return () => { if (saveTimer.current) clearTimeout(saveTimer.current); };
-  }, [user, draftLoaded, done, goalkeeper, coach, team, opponent, matchDate, scores, comments, selectedMedia]);
+  }, [user, draftLoaded, done, conflict, goalkeeper, coach, team, opponent, matchDate, scores, comments, selectedMedia]);
 
   const discardDraft = () => {
     if (!user) return;
@@ -235,6 +278,25 @@ function ReportForm({ onDone }: { onDone: () => void }) {
     setSelectedMedia([]);
     setDraftSavedAt(null);
     setDraftRestoredFrom(null);
+    localVersionRef.current = 0;
+    setConflict(null);
+  };
+
+  // Conflict resolution actions.
+  const keepMine = () => {
+    if (!user || !conflict) return;
+    const res = overwriteDraft(user.id, tabIdRef.current, currentSnapshot());
+    localVersionRef.current = res.version;
+    setDraftSavedAt(res.savedAt);
+    setConflict(null);
+  };
+  const useTheirs = () => {
+    if (!conflict) return;
+    applySnapshot(conflict);
+    localVersionRef.current = conflict.version;
+    setDraftSavedAt(conflict.savedAt);
+    setDraftRestoredFrom(conflict.savedAt);
+    setConflict(null);
   };
 
   const liveAverage = useMemo(() => averageOfScores(scores), [scores]);
