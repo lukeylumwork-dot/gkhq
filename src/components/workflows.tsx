@@ -220,6 +220,8 @@ function ReportForm({ onDone }: { onDone: () => void }) {
   if (!tabIdRef.current) tabIdRef.current = newTabId();
   const localVersionRef = useRef<number>(0);
   const [conflict, setConflict] = useState<ReportDraft | null>(null);
+  const [mergeSelections, setMergeSelections] = useState<Record<string, "mine" | "theirs">>({});
+  useEffect(() => { setMergeSelections({}); }, [conflict]);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "failed">("idle");
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -353,6 +355,35 @@ function ReportForm({ onDone }: { onDone: () => void }) {
     setDraftRestoredFrom(conflict.savedAt);
     setConflict(null);
     setSaveStatus("saved");
+  };
+  const applyMerge = () => {
+    if (!user || !conflict) return;
+    const mine = currentSnapshot();
+    const merged: ReportDraftSnapshot = { ...mine, scores: { ...mine.scores }, selectedMedia: [...mine.selectedMedia] };
+    for (const [key, side] of Object.entries(mergeSelections)) {
+      if (side !== "theirs") continue;
+      if (key.startsWith("score.")) {
+        const pid = key.slice(6) as PillarId;
+        if (conflict.scores?.[pid] != null) merged.scores[pid] = conflict.scores[pid];
+      } else if (key === "goalkeeper") merged.goalkeeper = conflict.goalkeeper;
+      else if (key === "coach") merged.coach = conflict.coach;
+      else if (key === "team") merged.team = conflict.team;
+      else if (key === "opponent") merged.opponent = conflict.opponent;
+      else if (key === "matchDate") merged.matchDate = conflict.matchDate;
+      else if (key === "comments") merged.comments = conflict.comments;
+      else if (key === "media") merged.selectedMedia = [...(conflict.selectedMedia ?? [])];
+    }
+    applySnapshot(merged);
+    const res = overwriteDraft(user.id, tabIdRef.current, merged);
+    if (res.ok) {
+      localVersionRef.current = res.version;
+      setDraftSavedAt(res.savedAt);
+      setDraftRestoredFrom(res.savedAt);
+      setConflict(null);
+      setSaveStatus("saved");
+    } else {
+      setSaveStatus("failed");
+    }
   };
 
   const retrySave = () => {
@@ -547,6 +578,8 @@ function ReportForm({ onDone }: { onDone: () => void }) {
             mine: mineSnap.selectedMedia.length ? `${mineSnap.selectedMedia.length} attached` : "—",
             theirs: conflict.selectedMedia?.length ? `${conflict.selectedMedia.length} attached` : "—" });
         }
+        const theirsCount = rows.reduce((n, r) => n + (mergeSelections[r.key] === "theirs" ? 1 : 0), 0);
+        const mineCount = rows.length - theirsCount;
         return (
           <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 space-y-2">
             <div className="flex items-start gap-2">
@@ -560,7 +593,7 @@ function ReportForm({ onDone }: { onDone: () => void }) {
                 </div>
                 <div className="text-muted-foreground mt-0.5">
                   Another tab saved this draft at <strong>{formatDraftTime(conflict.savedAt)}</strong>{" "}
-                  (v{conflict.version}). Choose which version to keep — autosave is paused until you decide.
+                  (v{conflict.version}). Keep one side, or pick per field and apply the merge.
                 </div>
                 {rows.length === 0 ? (
                   <div className="mt-2 text-[11px] text-muted-foreground italic">
@@ -568,30 +601,63 @@ function ReportForm({ onDone }: { onDone: () => void }) {
                   </div>
                 ) : (
                   <div className="mt-2 overflow-hidden rounded border border-border/60">
-                    <div className="grid grid-cols-[minmax(0,7rem)_minmax(0,1fr)_minmax(0,1fr)] text-[11px]">
+                    <div className="grid grid-cols-[minmax(0,7rem)_minmax(0,1fr)_minmax(0,1fr)_auto] text-[11px]">
                       <div className="bg-background/70 px-2 py-1 font-medium text-muted-foreground uppercase tracking-wider">Field</div>
                       <div className="bg-background/70 px-2 py-1 font-medium text-muted-foreground uppercase tracking-wider border-l border-border/60">This tab</div>
                       <div className="bg-background/70 px-2 py-1 font-medium text-muted-foreground uppercase tracking-wider border-l border-border/60">Other tab</div>
-                      {rows.map((r) => (
-                        <Fragment key={r.key}>
-                          <div className="px-2 py-1 border-t border-border/60 text-foreground/80 truncate">{r.label}</div>
-                          <div className="px-2 py-1 border-t border-l border-border/60 bg-amber-500/5">
-                            <span className="rounded px-1 bg-amber-500/20 text-foreground break-words">{r.mine}</span>
-                          </div>
-                          <div className="px-2 py-1 border-t border-l border-border/60 bg-amber-500/5">
-                            <span className="rounded px-1 bg-amber-500/20 text-foreground break-words">{r.theirs}</span>
-                          </div>
-                        </Fragment>
-                      ))}
+                      <div className="bg-background/70 px-2 py-1 font-medium text-muted-foreground uppercase tracking-wider border-l border-border/60">Take</div>
+                      {rows.map((r) => {
+                        const pick = mergeSelections[r.key] === "theirs" ? "theirs" : "mine";
+                        const setPick = (side: "mine" | "theirs") =>
+                          setMergeSelections((prev) => ({ ...prev, [r.key]: side }));
+                        const cellBase = "px-2 py-1 border-t border-l border-border/60";
+                        const activeCell = "bg-amber-500/15";
+                        const dimCell = "opacity-50";
+                        return (
+                          <Fragment key={r.key}>
+                            <div className="px-2 py-1 border-t border-border/60 text-foreground/80 truncate">{r.label}</div>
+                            <div className={`${cellBase} ${pick === "mine" ? activeCell : dimCell}`}>
+                              <span className="rounded px-1 bg-amber-500/20 text-foreground break-words">{r.mine}</span>
+                            </div>
+                            <div className={`${cellBase} ${pick === "theirs" ? activeCell : dimCell}`}>
+                              <span className="rounded px-1 bg-amber-500/20 text-foreground break-words">{r.theirs}</span>
+                            </div>
+                            <div className={`${cellBase} whitespace-nowrap`}>
+                              <div className="inline-flex rounded border border-border overflow-hidden">
+                                <button type="button" onClick={() => setPick("mine")}
+                                  aria-pressed={pick === "mine"}
+                                  className={`px-1.5 py-0.5 text-[10px] ${pick === "mine" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:text-foreground"}`}>
+                                  Mine
+                                </button>
+                                <button type="button" onClick={() => setPick("theirs")}
+                                  aria-pressed={pick === "theirs"}
+                                  className={`px-1.5 py-0.5 text-[10px] border-l border-border ${pick === "theirs" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:text-foreground"}`}>
+                                  Theirs
+                                </button>
+                              </div>
+                            </div>
+                          </Fragment>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
               </div>
             </div>
-            <div className="flex flex-wrap gap-2 justify-end">
+            <div className="flex flex-wrap items-center gap-2 justify-end">
+              {rows.length > 0 && (
+                <span className="text-[11px] text-muted-foreground mr-auto">
+                  {mineCount} mine · {theirsCount} theirs
+                </span>
+              )}
               <button type="button" onClick={useTheirs}
                 className="h-8 px-3 rounded-md border border-border text-xs">
                 Use other tab's version
+              </button>
+              <button type="button" onClick={applyMerge}
+                disabled={theirsCount === 0}
+                className="h-8 px-3 rounded-md border border-primary/60 text-primary text-xs font-medium disabled:opacity-40 disabled:cursor-not-allowed">
+                Apply merge
               </button>
               <button type="button" onClick={keepMine}
                 className="h-8 px-3 rounded-md bg-primary text-primary-foreground text-xs font-medium">
