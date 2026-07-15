@@ -106,11 +106,12 @@ export function AppShell() {
       </aside>
 
       <div className="flex flex-1 flex-col min-w-0">
-        <header className="h-14 flex items-center gap-3 px-4 md:px-6 border-b border-border bg-background/80 backdrop-blur sticky top-0 z-10">
-          <div className="md:hidden font-semibold">RPM</div>
+        <header className="h-14 flex items-center gap-3 px-4 md:px-6 border-b border-border bg-sidebar/95 backdrop-blur sticky top-0 z-10">
+          <div className="md:hidden font-display uppercase tracking-[0.04em] font-bold">GKHQ</div>
           <div className="flex-1 max-w-xl relative">
             <Search className="size-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <input placeholder="Search goalkeepers, mentors, reports…" className="w-full h-9 pl-9 pr-3 rounded-md bg-input/60 border border-border text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/40" />
+            <input placeholder="Search goalkeepers, mentors, reports…" className="w-full h-9 pl-9 pr-14 rounded-md bg-input border border-border text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/40" />
+            <kbd className="hidden md:inline-flex items-center gap-0.5 absolute right-2 top-1/2 -translate-y-1/2 h-5 px-1.5 rounded border border-border bg-background/60 text-[10px] font-mono text-muted-foreground">⌘K</kbd>
           </div>
           {user.actualRole === "super_admin" ? (
             <div className="hidden md:inline-flex items-center gap-1.5 h-7 pl-2 pr-1 rounded-md bg-primary/10 border border-primary/30 text-primary text-[10px] font-medium uppercase tracking-wider" title={user.role === user.actualRole ? "View as role (Super Admin only)" : `Viewing as ${ROLE_LABEL[user.role]} · real role: ${ROLE_LABEL[user.actualRole]}`}>
