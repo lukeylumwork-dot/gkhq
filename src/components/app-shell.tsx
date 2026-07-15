@@ -110,7 +110,24 @@ export function AppShell() {
             <Search className="size-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <input placeholder="Search goalkeepers, mentors, reports…" className="w-full h-9 pl-9 pr-3 rounded-md bg-input/60 border border-border text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/40" />
           </div>
-          <div className="hidden md:inline-flex items-center gap-1.5 h-7 px-2 rounded-md bg-primary/10 border border-primary/30 text-primary text-[10px] font-medium uppercase tracking-wider"><ShieldCheck className="size-3" />{ROLE_LABEL[user.role]}</div>
+          {user.actualRole === "super_admin" ? (
+            <label className="hidden md:inline-flex items-center gap-1.5 h-7 pl-2 pr-1 rounded-md bg-primary/10 border border-primary/30 text-primary text-[10px] font-medium uppercase tracking-wider" title="View as role (Super Admin only)">
+              <ShieldCheck className="size-3" />
+              <span>View as</span>
+              <select
+                value={user.role}
+                onChange={(e) => setViewAsRole(e.target.value as Role)}
+                className="h-6 bg-transparent text-primary text-[10px] font-medium uppercase tracking-wider focus:outline-none cursor-pointer"
+              >
+                <option value="super_admin">Super Admin</option>
+                <option value="admin">Admin</option>
+                <option value="mentor_manager">Mentor Manager</option>
+                <option value="mentor">Mentor</option>
+              </select>
+            </label>
+          ) : (
+            <div className="hidden md:inline-flex items-center gap-1.5 h-7 px-2 rounded-md bg-primary/10 border border-primary/30 text-primary text-[10px] font-medium uppercase tracking-wider"><ShieldCheck className="size-3" />{ROLE_LABEL[user.role]}</div>
+          )}
           {primaryAction && (
             <button onClick={() => setWorkflow(primaryAction.kind)} className="hidden sm:inline-flex items-center gap-1.5 h-9 px-3 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:opacity-90">
               <Plus className="size-4" />{primaryAction.label}
