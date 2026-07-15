@@ -356,18 +356,54 @@ function ReportForm({ onDone }: { onDone: () => void }) {
     setConflict(null);
     setSaveStatus("saved");
   };
-  // Capture the local snapshot at the moment a conflict is raised. This is
-  // the stable "mine" reference used for diff rows and Undo.
+  // Capture stable "mine" snapshot when a conflict arises; reset on clear.
+  const raiseConflict = (remote: ReportDraft) => {
+    preConflictLocalRef.current = currentSnapshot();
+    setResolutions({});
+    setConflict(remote);
+  };
   useEffect(() => {
-    if (conflict) {
-      if (!preConflictLocalRef.current) preConflictLocalRef.current = currentSnapshot();
-      setResolutions({});
-    } else {
+    if (!conflict) {
       preConflictLocalRef.current = null;
       setResolutions({});
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [conflict]);
+
+  const computeDiffRows = (mine: ReportDraftSnapshot, other: ReportDraft) => {
+    const fmt = (v: unknown): string => {
+      if (v == null || v === "") return "—";
+      if (Array.isArray(v)) return v.length ? `${v.length} item${v.length === 1 ? "" : "s"}` : "—";
+      return String(v);
+    };
+    const truncate = (s: string, n = 60) => s.length > n ? `${s.slice(0, n)}…` : s;
+    type Row = { key: string; label: string; mine: string; theirs: string };
+    const rows: Row[] = [];
+    const push = (key: string, label: string, m: unknown, t: unknown) => {
+      const ms = fmt(m); const ts = fmt(t);
+      if (ms !== ts) rows.push({ key, label, mine: ms, theirs: ts });
+    };
+    push("goalkeeper", "Goalkeeper", mine.goalkeeper, other.goalkeeper);
+    push("coach", "Coach", mine.coach, other.coach);
+    push("team", "Team", mine.team, other.team);
+    push("opponent", "Opponent", mine.opponent, other.opponent);
+    push("matchDate", "Match date", mine.matchDate, other.matchDate);
+    for (const pid of PILLAR_IDS) {
+      push(`score.${pid}`, PILLAR_LABELS[pid], mine.scores[pid], other.scores?.[pid]);
+    }
+    if ((mine.comments || "") !== (other.comments || "")) {
+      rows.push({ key: "comments", label: "Comments",
+        mine: mine.comments ? truncate(mine.comments) : "—",
+        theirs: other.comments ? truncate(other.comments) : "—" });
+    }
+    const mineMedia = [...mine.selectedMedia].sort().join("|");
+    const theirMedia = [...(other.selectedMedia ?? [])].sort().join("|");
+    if (mineMedia !== theirMedia) {
+      rows.push({ key: "media", label: "Media attachments",
+        mine: mine.selectedMedia.length ? `${mine.selectedMedia.length} attached` : "—",
+        theirs: other.selectedMedia?.length ? `${other.selectedMedia.length} attached` : "—" });
+    }
+    return rows;
+  };
 
   const setFieldFromSnapshot = (key: string, snap: ReportDraftSnapshot) => {
     if (key.startsWith("score.")) {
@@ -398,6 +434,44 @@ function ReportForm({ onDone }: { onDone: () => void }) {
       const n = { ...prev }; delete n[key]; return n;
     });
   };
+
+  // Auto-finalize when every diff row is resolved: persist the merged snapshot
+  // and clear the conflict.
+  useEffect(() => {
+    if (!user || !conflict || !preConflictLocalRef.current) return;
+    const rows = computeDiffRows(preConflictLocalRef.current, conflict);
+    if (rows.length === 0) return;
+    if (Object.keys(resolutions).length !== rows.length) return;
+    const local = preConflictLocalRef.current;
+    const merged: ReportDraftSnapshot = {
+      ...local, scores: { ...local.scores }, selectedMedia: [...local.selectedMedia],
+    };
+    for (const r of rows) {
+      if (resolutions[r.key] !== "accepted") continue;
+      if (r.key.startsWith("score.")) {
+        const pid = r.key.slice(6) as PillarId;
+        if (conflict.scores?.[pid] != null) merged.scores[pid] = conflict.scores[pid];
+      } else if (r.key === "goalkeeper") merged.goalkeeper = conflict.goalkeeper;
+      else if (r.key === "coach") merged.coach = conflict.coach;
+      else if (r.key === "team") merged.team = conflict.team;
+      else if (r.key === "opponent") merged.opponent = conflict.opponent;
+      else if (r.key === "matchDate") merged.matchDate = conflict.matchDate;
+      else if (r.key === "comments") merged.comments = conflict.comments;
+      else if (r.key === "media") merged.selectedMedia = [...(conflict.selectedMedia ?? [])];
+    }
+    const res = overwriteDraft(user.id, tabIdRef.current, merged);
+    if (res.ok) {
+      localVersionRef.current = res.version;
+      setDraftSavedAt(res.savedAt);
+      setDraftRestoredFrom(res.savedAt);
+      setConflict(null);
+      setSaveStatus("saved");
+    } else {
+      setSaveStatus("failed");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resolutions, conflict]);
+
 
 
   const retrySave = () => {
