@@ -54,8 +54,8 @@ function GkDetail() {
 
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         <Card className="p-3"><div className="text-[10px] uppercase text-muted-foreground">Mentor</div><div className="text-sm font-medium mt-1">{mentor?.name}</div></Card>
-        <Card className="p-3"><div className="text-[10px] uppercase text-muted-foreground">Rating</div><div className="text-xl font-semibold tabular-nums mt-1">{gk.rating}</div></Card>
-        <Card className="p-3"><div className="text-[10px] uppercase text-muted-foreground">Potential</div><div className="text-xl font-semibold tabular-nums mt-1">{gk.potential}</div></Card>
+        <Card className="p-3"><div className="text-[10px] uppercase text-muted-foreground">Rating</div><div className="text-xl font-semibold tabular-nums font-mono mt-1">{gk.rating}</div></Card>
+        <Card className="p-3"><div className="text-[10px] uppercase text-muted-foreground">Potential</div><div className="text-xl font-semibold tabular-nums font-mono mt-1">{gk.potential}</div></Card>
         <Card className="p-3"><div className="text-[10px] uppercase text-muted-foreground">Contract</div><div className="text-sm font-medium mt-1">{gk.contractUntil}</div></Card>
         <Card className="p-3"><div className="text-[10px] uppercase text-muted-foreground">Recommendation</div><div className="mt-1"><Pill tone={gk.recommendation === "Sign" || gk.recommendation === "Retain" ? "success" : gk.recommendation === "Pass" ? "destructive" : "info"}>{gk.recommendation}</Pill></div></Card>
       </div>
@@ -83,7 +83,7 @@ function GkDetail() {
                   <div className="absolute -left-[15px] top-1 size-3 rounded-full bg-primary ring-4 ring-background" />
                   <div className="flex items-center justify-between gap-2 flex-wrap">
                     <div className="flex items-center gap-1.5 text-sm font-medium"><Icon className="size-3.5 text-muted-foreground" />{i.type}</div>
-                    <div className="text-[11px] text-muted-foreground tabular-nums">{formatDate(i.date)} · {formatRelative(i.date)}</div>
+                    <div className="text-[11px] text-muted-foreground tabular-nums font-mono">{formatDate(i.date)} · {formatRelative(i.date)}</div>
                   </div>
                   <div className="text-sm text-muted-foreground mt-0.5">{i.notes}</div>
                   <div className="flex gap-1.5 mt-1.5"><Pill>{i.outcome}</Pill><Pill tone="info">↳ {i.followUp}</Pill></div>
@@ -104,7 +104,7 @@ function GkDetail() {
                     <div className="text-xs font-medium truncate">{r.type}</div>
                     <div className="text-[10px] text-muted-foreground">{formatDate(r.date)}</div>
                   </div>
-                  <span className="text-xs font-semibold tabular-nums">{r.rating}</span>
+                  <span className="text-xs font-semibold tabular-nums font-mono">{r.rating}</span>
                 </div>
               ))}
             </div>
@@ -116,7 +116,7 @@ function GkDetail() {
               <div className="space-y-2.5">
                 {Object.entries(gkReports[0].scores).map(([k, v]) => (
                   <div key={k}>
-                    <div className="flex justify-between text-[11px] mb-1"><span className="capitalize text-muted-foreground">{k.replace(/([A-Z])/g, " $1")}</span><span className="tabular-nums font-medium">{v}/10</span></div>
+                    <div className="flex justify-between text-[11px] mb-1"><span className="capitalize text-muted-foreground">{k.replace(/([A-Z])/g, " $1")}</span><span className="tabular-nums font-mono font-medium">{v}/10</span></div>
                     <ProgressBar value={v * 10} />
                   </div>
                 ))}

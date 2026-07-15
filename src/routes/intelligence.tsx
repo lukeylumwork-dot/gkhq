@@ -47,11 +47,11 @@ function IntelligencePage() {
                 </div>
                 <div className="grid grid-cols-2 gap-3 mt-3">
                   <div>
-                    <div className="flex justify-between text-[11px] mb-1"><span className="text-muted-foreground">Rating</span><span className="tabular-nums font-medium">{gk.rating}</span></div>
+                    <div className="flex justify-between text-[11px] mb-1"><span className="text-muted-foreground">Rating</span><span className="tabular-nums font-mono font-medium">{gk.rating}</span></div>
                     <ProgressBar value={gk.rating} />
                   </div>
                   <div>
-                    <div className="flex justify-between text-[11px] mb-1"><span className="text-muted-foreground">Potential</span><span className="tabular-nums font-medium">{gk.potential}</span></div>
+                    <div className="flex justify-between text-[11px] mb-1"><span className="text-muted-foreground">Potential</span><span className="tabular-nums font-mono font-medium">{gk.potential}</span></div>
                     <ProgressBar value={gk.potential} tone="info" />
                   </div>
                 </div>

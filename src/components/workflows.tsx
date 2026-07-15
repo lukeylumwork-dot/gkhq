@@ -633,7 +633,7 @@ function ReportForm({ onDone }: { onDone: () => void }) {
             onChange={(e) => setMatchDate(e.target.value)} />
         </Field>
         <Field label="Average of scores">
-          <div className="h-9 px-3 rounded-md border border-border/60 bg-muted/40 flex items-center text-sm font-semibold tabular-nums">
+          <div className="h-9 px-3 rounded-md border border-border/60 bg-muted/40 flex items-center text-sm font-semibold tabular-nums font-mono">
             {liveAverage.toFixed(1)}
           </div>
         </Field>
@@ -655,7 +655,7 @@ function ReportForm({ onDone }: { onDone: () => void }) {
                   const active = scores[id] === n;
                   return (
                     <button key={n} type="button" onClick={() => setScore(id, n)}
-                      className={`size-7 rounded text-xs font-semibold tabular-nums transition-colors ${
+                      className={`size-7 rounded text-xs font-semibold tabular-nums font-mono transition-colors ${
                         active ? "bg-primary text-primary-foreground" : "bg-background border border-border text-muted-foreground hover:bg-accent/40"
                       }`}>{n}</button>
                   );
@@ -1429,7 +1429,7 @@ function MediaChipPreview({ id, info, tone }: {
           <span className="text-[10px] opacity-75 truncate">{filename}</span>
         )}
         {metaParts.length > 0 && (
-          <span className="text-[10px] opacity-70 truncate tabular-nums">
+          <span className="text-[10px] opacity-70 truncate tabular-nums font-mono">
             {metaParts.join(" · ")}
           </span>
         )}

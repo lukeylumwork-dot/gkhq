@@ -82,7 +82,7 @@ function AuditPage() {
                 : null;
               return (
                 <tr key={e.id} className="border-b border-border/60 last:border-0 hover:bg-accent/20 align-top">
-                  <td className="px-4 py-2.5 text-muted-foreground tabular-nums whitespace-nowrap">
+                  <td className="px-4 py-2.5 text-muted-foreground tabular-nums font-mono whitespace-nowrap">
                     {formatDate(e.created_at)} <span className="text-[10px]">{new Date(e.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
                   </td>
                   <td className="px-2 py-2.5"><Pill tone={meta.tone}><Icon className="size-2.5 mr-1 inline" />{meta.label}</Pill></td>

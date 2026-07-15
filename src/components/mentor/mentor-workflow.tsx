@@ -447,7 +447,7 @@ function ScoreSlider({ label, hint, value, onChange }: { label: string; hint: st
           <div className="text-sm font-medium truncate">{label}</div>
           <div className="text-[10px] text-muted-foreground truncate">{hint}</div>
         </div>
-        <div className={`tabular-nums text-lg font-semibold ${tone}`}>{value}</div>
+        <div className={`tabular-nums font-mono text-lg font-semibold ${tone}`}>{value}</div>
       </div>
       <input
         type="range"
@@ -546,7 +546,7 @@ function MatchReportForm({
         <div className="flex items-baseline justify-between mb-2">
           <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">7 RPM metrics</div>
           <div className="text-xs text-muted-foreground">
-            Overall <span className="text-foreground font-semibold tabular-nums">{overall}</span> / 100
+            Overall <span className="text-foreground font-semibold tabular-nums font-mono">{overall}</span> / 100
           </div>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -633,7 +633,7 @@ function VoiceNoteForm({
               Prototype only — audio isn't captured. Paste or type your transcript below.
             </div>
           </div>
-          <div className={`tabular-nums text-lg font-semibold shrink-0 ${recording ? "text-destructive" : "text-muted-foreground"}`}>
+          <div className={`tabular-nums font-mono text-lg font-semibold shrink-0 ${recording ? "text-destructive" : "text-muted-foreground"}`}>
             {mm}:{ss}
           </div>
         </div>

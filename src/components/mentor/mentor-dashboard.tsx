@@ -78,7 +78,7 @@ export function MentorDashboard({ user, mentorProfileId }: Props) {
         </div>
         <div className="shrink-0 hidden sm:flex flex-col items-end">
           <div className="text-[10px] uppercase tracking-wider text-muted-foreground">This month</div>
-          <div className="tabular-nums text-lg font-semibold">
+          <div className="tabular-nums font-mono text-lg font-semibold">
             {progress.completed}<span className="text-muted-foreground text-sm">/{progress.target}</span>
           </div>
           <div className="w-32 mt-1"><ProgressBar value={progress.pct} tone={progress.pct >= 80 ? "primary" : progress.pct >= 50 ? "info" : "warning"} /></div>
@@ -98,11 +98,11 @@ export function MentorDashboard({ user, mentorProfileId }: Props) {
           action={
             <div className="flex items-center gap-2">
               <TrafficLight level="green" size={8} />
-              <span className="text-[11px] tabular-nums text-muted-foreground">{rollup.green}</span>
+              <span className="text-[11px] tabular-nums font-mono text-muted-foreground">{rollup.green}</span>
               <TrafficLight level="amber" size={8} />
-              <span className="text-[11px] tabular-nums text-muted-foreground">{rollup.amber}</span>
+              <span className="text-[11px] tabular-nums font-mono text-muted-foreground">{rollup.amber}</span>
               <TrafficLight level="red" size={8} />
-              <span className="text-[11px] tabular-nums text-muted-foreground">{rollup.red}</span>
+              <span className="text-[11px] tabular-nums font-mono text-muted-foreground">{rollup.red}</span>
             </div>
           }
         >
@@ -132,7 +132,7 @@ export function MentorDashboard({ user, mentorProfileId }: Props) {
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 min-w-0">
                         <span className="font-medium text-sm truncate">{player.full_name}</span>
-                        <span className="text-[10px] tabular-nums text-muted-foreground shrink-0">{duty.days_since_contact}d</span>
+                        <span className="text-[10px] tabular-nums font-mono text-muted-foreground shrink-0">{duty.days_since_contact}d</span>
                       </div>
                       <div className="text-xs text-muted-foreground truncate">{player.club}</div>
                       <div className={`text-[11px] mt-0.5 truncate ${duty.level === "red" ? "text-destructive" : "text-warning"}`}>
@@ -362,7 +362,7 @@ function RosterRow({ player, mediaCount }: { player: PlayerRow; mediaCount: numb
         <div className="text-right shrink-0 flex items-center gap-2">
           <div className="hidden sm:block text-right">
             <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Next</div>
-            <div className="text-xs tabular-nums">{formatRelative(player.next_fixture_at)}</div>
+            <div className="text-xs tabular-nums font-mono">{formatRelative(player.next_fixture_at)}</div>
           </div>
           <ChevronRight className="size-4 text-muted-foreground" />
         </div>

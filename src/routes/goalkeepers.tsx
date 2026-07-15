@@ -57,11 +57,11 @@ function GoalkeepersList() {
             <button key={d.id} onClick={() => setDuty(d.id)} className={`px-3 py-1.5 inline-flex items-center gap-1.5 transition-colors border-r border-border last:border-r-0 ${duty === d.id ? "bg-accent text-accent-foreground" : "hover:bg-accent/40 text-muted-foreground"}`}>
               {d.id !== "all" && <TrafficLight level={d.id} size={7} />}
               {d.label}
-              <span className="tabular-nums text-[10px] opacity-70">{d.count}</span>
+              <span className="tabular-nums font-mono text-[10px] opacity-70">{d.count}</span>
             </button>
           ))}
         </div>
-        <div className="ml-auto text-xs text-muted-foreground tabular-nums">{filtered.length} results</div>
+        <div className="ml-auto text-xs text-muted-foreground tabular-nums font-mono">{filtered.length} results</div>
       </div>
 
       <Card>
@@ -97,17 +97,17 @@ function GoalkeepersList() {
                   <td className="px-2"><TierBadge tier={gk.status} /></td>
                   <td className="px-2 text-muted-foreground">{gk.club}</td>
                   <td className="px-2 text-muted-foreground text-xs">{gk.league}</td>
-                  <td className="px-2 tabular-nums">{gk.age}</td>
+                  <td className="px-2 tabular-nums font-mono">{gk.age}</td>
                   <td className="px-2 text-muted-foreground">{gk.nationality}</td>
                   <td className="px-2 text-muted-foreground">{m?.name}</td>
-                  <td className="px-2 text-muted-foreground tabular-nums">{gk.contractUntil === "—" ? "—" : gk.contractUntil.slice(0, 4)}</td>
+                  <td className="px-2 text-muted-foreground tabular-nums font-mono">{gk.contractUntil === "—" ? "—" : gk.contractUntil.slice(0, 4)}</td>
                   <td className="px-2">
                     <div className="flex items-center gap-2">
                       <DutyBadge level={d.level} label={d.label} />
-                      <span className="text-[11px] text-muted-foreground tabular-nums">{formatRelative(gk.lastInteraction)}</span>
+                      <span className="text-[11px] text-muted-foreground tabular-nums font-mono">{formatRelative(gk.lastInteraction)}</span>
                     </div>
                   </td>
-                  <td className="px-4 text-right tabular-nums font-medium">{gk.rating}</td>
+                  <td className="px-4 text-right tabular-nums font-mono font-medium">{gk.rating}</td>
                 </tr>
               );
             })}

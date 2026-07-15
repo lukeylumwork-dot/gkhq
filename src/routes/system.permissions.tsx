@@ -173,7 +173,7 @@ function PermissionsReportPage() {
             <Card key={g.title} className="overflow-hidden">
               <div className="flex items-center justify-between border-b border-border px-4 py-2.5">
                 <h2 className="text-sm font-semibold">{g.title}</h2>
-                <span className="text-xs text-muted-foreground tabular-nums">
+                <span className="text-xs text-muted-foreground tabular-nums font-mono">
                   {groupAllowed}/{groupRows.length} allowed
                 </span>
               </div>

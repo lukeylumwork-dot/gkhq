@@ -45,7 +45,7 @@ function InteractionsPage() {
               const m = getMentor(i.mentorId);
               return (
                 <tr key={i.id} className="border-b border-border/60 last:border-0 hover:bg-accent/20">
-                  <td className="px-4 py-2.5 text-muted-foreground tabular-nums">{formatDate(i.date)}<div className="text-[10px] opacity-60">{formatRelative(i.date)}</div></td>
+                  <td className="px-4 py-2.5 text-muted-foreground tabular-nums font-mono">{formatDate(i.date)}<div className="text-[10px] opacity-60">{formatRelative(i.date)}</div></td>
                   <td className="px-2"><Pill tone="info">{i.type}</Pill></td>
                   <td className="px-2"><div className="flex items-center gap-2"><Avatar initials={gk?.initials ?? "?"} size={22} /><span className="font-medium">{gk?.name}</span></div></td>
                   <td className="px-2 text-muted-foreground">{m?.name}</td>

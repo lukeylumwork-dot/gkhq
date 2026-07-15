@@ -73,7 +73,7 @@ function ReportDetail() {
         action={
           <div className="text-right">
             <div className="text-[11px] text-muted-foreground uppercase tracking-wider">Average</div>
-            <div className="text-3xl font-semibold tabular-nums">
+            <div className="text-3xl font-semibold tabular-nums font-mono">
               {r.average != null ? r.average.toFixed(1) : "—"}
             </div>
           </div>
@@ -93,7 +93,7 @@ function ReportDetail() {
             {PILLAR_IDS.map((id) => (
               <li key={id} className="flex items-start justify-between gap-3">
                 <span className="text-muted-foreground text-xs leading-tight">{PILLAR_LABELS[id]}</span>
-                <span className="font-semibold tabular-nums shrink-0">
+                <span className="font-semibold tabular-nums font-mono shrink-0">
                   {r.scores[id] != null ? `${r.scores[id]}/5` : "—"}
                 </span>
               </li>

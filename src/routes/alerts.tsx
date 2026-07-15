@@ -91,7 +91,7 @@ function DutyNotificationsPanel() {
             <div className="text-xs text-muted-foreground mt-0.5">Triggered when a goalkeeper's traffic light changes (e.g. amber → red).</div>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-[11px] text-muted-foreground tabular-nums">{unread} unread · {items.length} total</span>
+            <span className="text-[11px] text-muted-foreground tabular-nums font-mono">{unread} unread · {items.length} total</span>
             <button onClick={markAllRead} className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-md border border-border hover:bg-accent"><Check className="size-3" />Mark read</button>
             <button onClick={clearAll} className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-md border border-border hover:bg-accent"><Trash2 className="size-3" />Clear</button>
           </div>

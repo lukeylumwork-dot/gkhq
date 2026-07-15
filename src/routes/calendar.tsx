@@ -62,7 +62,7 @@ function CalendarPage() {
               const events = d ? eventsByDay.get(d.toDateString()) ?? [] : [];
               return (
                 <div key={i} className={`min-h-24 rounded-md border p-1.5 ${d ? "bg-card border-border" : "border-transparent"} ${isToday ? "ring-1 ring-primary" : ""}`}>
-                  {d && <div className={`text-[11px] tabular-nums font-medium mb-1 ${isToday ? "text-primary" : "text-muted-foreground"}`}>{d.getDate()}</div>}
+                  {d && <div className={`text-[11px] tabular-nums font-mono font-medium mb-1 ${isToday ? "text-primary" : "text-muted-foreground"}`}>{d.getDate()}</div>}
                   <div className="space-y-1">
                     {events.slice(0, 3).map((e) => (
                       <div key={e.id} className={`text-[10px] truncate px-1.5 py-0.5 rounded border ${
@@ -89,7 +89,7 @@ function CalendarPage() {
               return (
                 <div key={d.toISOString()} className={`min-h-72 rounded-md border border-border p-2 ${isToday ? "ring-1 ring-primary" : ""}`}>
                   <div className="text-[10px] uppercase text-muted-foreground">{d.toLocaleDateString("en", { weekday: "short" })}</div>
-                  <div className={`text-lg font-semibold tabular-nums ${isToday ? "text-primary" : ""}`}>{d.getDate()}</div>
+                  <div className={`text-lg font-semibold tabular-nums font-mono ${isToday ? "text-primary" : ""}`}>{d.getDate()}</div>
                   <div className="space-y-1.5 mt-2">
                     {events.map((e) => (
                       <div key={e.id} className="text-[11px] p-1.5 rounded bg-accent/40 border border-border/60">
@@ -110,7 +110,7 @@ function CalendarPage() {
         <div className="divide-y divide-border">
           {calendarEvents.filter((e) => new Date(e.date).getTime() >= Date.now() - 86400000).sort((a, b) => +new Date(a.date) - +new Date(b.date)).slice(0, 10).map((e) => (
             <div key={e.id} className="flex items-center gap-3 py-2 text-sm">
-              <div className="w-24 text-xs text-muted-foreground tabular-nums">{formatDate(e.date)}</div>
+              <div className="w-24 text-xs text-muted-foreground tabular-nums font-mono">{formatDate(e.date)}</div>
               <Pill tone={TONE[e.type]}>{e.type}</Pill>
               <div className="flex-1 truncate">{e.title}</div>
             </div>

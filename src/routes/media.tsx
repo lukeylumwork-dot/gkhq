@@ -209,7 +209,7 @@ function MediaPage() {
                   )}
                   <div className="flex justify-between text-[11px] text-muted-foreground mt-1.5">
                     <span>{formatDate(m.created_at)}</span>
-                    <span className="tabular-nums">{formatBytes(m.file_size)}</span>
+                    <span className="tabular-nums font-mono">{formatBytes(m.file_size)}</span>
                   </div>
                   <div className="flex items-center justify-between mt-2 pt-2 border-t border-border/60">
                     <span className="text-[10px] text-muted-foreground truncate">

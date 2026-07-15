@@ -44,7 +44,7 @@ function Executive() {
           <div className="flex items-end gap-2 h-48">
             {weeks.map((w) => (
               <div key={w.label} className="flex-1 flex flex-col items-center gap-1.5">
-                <div className="text-[10px] tabular-nums text-muted-foreground">{w.count}</div>
+                <div className="text-[10px] tabular-nums font-mono text-muted-foreground">{w.count}</div>
                 <div className="w-full bg-primary/70 rounded-t hover:bg-primary transition-colors" style={{ height: `${(w.count / maxW) * 100}%` }} />
                 <div className="text-[10px] text-muted-foreground">{w.label}</div>
               </div>
@@ -60,7 +60,7 @@ function Executive() {
               const color = t.tier === "Elite" ? "bg-warning" : t.tier === "First Team" ? "bg-info" : t.tier === "Development" ? "bg-primary" : t.tier === "Free Agent" ? "bg-destructive" : "bg-tier-3";
               return (
                 <div key={t.tier}>
-                  <div className="flex items-center justify-between text-xs mb-1.5"><TierBadge tier={t.tier as never} /><span className="tabular-nums">{t.count} · {pct}%</span></div>
+                  <div className="flex items-center justify-between text-xs mb-1.5"><TierBadge tier={t.tier as never} /><span className="tabular-nums font-mono">{t.count} · {pct}%</span></div>
                   <div className="h-1.5 bg-muted rounded-full overflow-hidden">
                     <div className={`h-full ${color}`} style={{ width: `${pct}%` }} />
                   </div>
@@ -77,7 +77,7 @@ function Executive() {
           <div className="space-y-2.5">
             {reportsByType.map((r) => (
               <div key={r.type}>
-                <div className="flex justify-between text-xs mb-1"><span className="text-muted-foreground">{r.type}</span><span className="tabular-nums font-medium">{r.count}</span></div>
+                <div className="flex justify-between text-xs mb-1"><span className="text-muted-foreground">{r.type}</span><span className="tabular-nums font-mono font-medium">{r.count}</span></div>
                 <ProgressBar value={(r.count / reports.length) * 100} tone="info" />
               </div>
             ))}
@@ -89,7 +89,7 @@ function Executive() {
           <div className="grid grid-cols-2 gap-3">
             {Object.entries(pipeline).map(([k, v]) => (
               <div key={k} className="p-3 rounded-md border border-border/60 bg-accent/20">
-                <div className="flex items-center justify-between"><Pill tone={k === "Sign" ? "success" : k === "Pass" ? "destructive" : k === "Monitor" ? "info" : "warning"}>{k}</Pill><span className="text-2xl font-semibold tabular-nums">{v}</span></div>
+                <div className="flex items-center justify-between"><Pill tone={k === "Sign" ? "success" : k === "Pass" ? "destructive" : k === "Monitor" ? "info" : "warning"}>{k}</Pill><span className="text-2xl font-semibold tabular-nums font-mono">{v}</span></div>
                 <div className="text-[11px] text-muted-foreground mt-1">{Math.round((v / goalkeepers.length) * 100)}% of pool</div>
               </div>
             ))}
@@ -102,11 +102,11 @@ function Executive() {
         <div className="space-y-2">
           {[...mentors].sort((a, b) => b.completedThisMonth - a.completedThisMonth).map((m, i) => (
             <div key={m.id} className="flex items-center gap-3">
-              <div className="w-6 text-xs tabular-nums text-muted-foreground">{i + 1}</div>
+              <div className="w-6 text-xs tabular-nums font-mono text-muted-foreground">{i + 1}</div>
               <div className="w-40 text-sm font-medium truncate">{m.name}</div>
               <div className="text-[11px] text-muted-foreground w-32 truncate">{m.region}</div>
               <div className="flex-1"><ProgressBar value={(m.completedThisMonth / m.targetInteractions) * 100} /></div>
-              <div className="text-xs tabular-nums w-16 text-right">{m.completedThisMonth}/{m.targetInteractions}</div>
+              <div className="text-xs tabular-nums font-mono w-16 text-right">{m.completedThisMonth}/{m.targetInteractions}</div>
             </div>
           ))}
         </div>

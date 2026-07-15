@@ -118,13 +118,13 @@ function ReportsPage() {
               )}
               {filtered.slice(0, 100).map((r) => (
                 <tr key={r.report_id} className="border-b border-border/60 last:border-0 hover:bg-accent/20">
-                  <td className="px-4 py-2.5 text-muted-foreground tabular-nums whitespace-nowrap">{formatDate(r.match_date)}</td>
+                  <td className="px-4 py-2.5 text-muted-foreground tabular-nums font-mono whitespace-nowrap">{formatDate(r.match_date)}</td>
                   <td className="px-2 font-medium">{r.goalkeeper}</td>
                   <td className="px-2 text-muted-foreground">{r.coach}</td>
                   <td className="px-2 text-muted-foreground">{r.team ?? "—"}</td>
                   <td className="px-2 text-muted-foreground">{r.opponent ?? "—"}</td>
                   <td className="px-2 text-muted-foreground max-w-md"><span className="line-clamp-1">{r.comments}</span></td>
-                  <td className="px-2 text-right tabular-nums font-semibold">{r.average != null ? r.average.toFixed(1) : "—"}</td>
+                  <td className="px-2 text-right tabular-nums font-mono font-semibold">{r.average != null ? r.average.toFixed(1) : "—"}</td>
                   <td className="px-4 text-right">
                     <Link to="/reports/$reportId" params={{ reportId: r.report_id }} className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-0.5">
                       Open <ChevronRight className="size-3" />

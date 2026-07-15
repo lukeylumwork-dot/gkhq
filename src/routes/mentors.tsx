@@ -34,7 +34,7 @@ function MentorsPage() {
               </div>
               {target > 0 ? (
                 <div>
-                  <div className="flex justify-between text-[11px] mb-1.5"><span className="text-muted-foreground uppercase tracking-wider">Monthly Interactions</span><span className="tabular-nums font-medium">{m.completedThisMonth}/{target}</span></div>
+                  <div className="flex justify-between text-[11px] mb-1.5"><span className="text-muted-foreground uppercase tracking-wider">Monthly Interactions</span><span className="tabular-nums font-mono font-medium">{m.completedThisMonth}/{target}</span></div>
                   <ProgressBar value={pct} tone={pct < 60 ? "warning" : "primary"} />
                 </div>
               ) : (
@@ -45,7 +45,7 @@ function MentorsPage() {
                 {recent.length > 0 ? recent.map((r) => (
                   <div key={r.id} className="flex justify-between text-xs py-0.5">
                     <span className="text-muted-foreground truncate">{r.type}</span>
-                    <span className="tabular-nums text-muted-foreground">{formatRelative(r.date)}</span>
+                    <span className="tabular-nums font-mono text-muted-foreground">{formatRelative(r.date)}</span>
                   </div>
                 )) : (
                   <div className="text-[11px] text-muted-foreground italic">No recent activity</div>

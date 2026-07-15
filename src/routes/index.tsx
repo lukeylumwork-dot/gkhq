@@ -63,13 +63,13 @@ function Dashboard() {
                     <TrafficLight level={b.level} size={12} />
                     <span className="text-sm font-medium">{b.label}</span>
                   </div>
-                  <span className="tabular-nums text-lg font-semibold">{b.count}</span>
+                  <span className="tabular-nums font-mono text-lg font-semibold">{b.count}</span>
                 </div>
                 <div className="text-[11px] text-muted-foreground mt-1">{b.hint}</div>
                 <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden mt-2">
                   <div className={`h-full ${bar}`} style={{ width: `${pct}%` }} />
                 </div>
-                <div className="text-[10px] text-muted-foreground mt-1 tabular-nums">{pct}% of roster</div>
+                <div className="text-[10px] text-muted-foreground mt-1 tabular-nums font-mono">{pct}% of roster</div>
               </div>
             );
           })}
@@ -87,7 +87,7 @@ function Dashboard() {
                   <Link key={g.id} to="/goalkeepers/$gkId" params={{ gkId: g.id }} className="inline-flex items-center gap-1.5 text-[11px] px-2 py-1 rounded border border-destructive/40 bg-destructive/10 hover:bg-destructive/20 transition-colors">
                     <TrafficLight level="red" size={6} />
                     <span className="font-medium">{g.name}</span>
-                    <span className="text-destructive/80 tabular-nums">{d.days}d</span>
+                    <span className="text-destructive/80 tabular-nums font-mono">{d.days}d</span>
                   </Link>
                 ))}
             </div>
@@ -115,7 +115,7 @@ function Dashboard() {
                     <div className="text-xs text-muted-foreground truncate">{gk.club} · {gk.league}</div>
                   </div>
                   <div className="text-right">
-                    <div className="text-xs font-medium tabular-nums flex items-center gap-1 justify-end"><CalendarClock className="size-3 text-muted-foreground" />{formatRelative(gk.nextInteraction)}</div>
+                    <div className="text-xs font-medium tabular-nums font-mono flex items-center gap-1 justify-end"><CalendarClock className="size-3 text-muted-foreground" />{formatRelative(gk.nextInteraction)}</div>
                     <div className="text-[11px] text-muted-foreground">w/ {m?.name.split(" ")[1]}</div>
                   </div>
                 </Link>
@@ -172,7 +172,7 @@ function Dashboard() {
                 <div key={t.tier}>
                   <div className="flex items-center justify-between text-xs mb-1.5">
                     <span className="flex items-center gap-2"><TierBadge tier={t.tier as never} /> <span className="text-muted-foreground">{t.count} GKs</span></span>
-                    <span className="tabular-nums font-medium">{pct}%</span>
+                    <span className="tabular-nums font-mono font-medium">{pct}%</span>
                   </div>
                   <div className="h-1.5 bg-muted rounded-full overflow-hidden">
                     <div className={`h-full ${color}`} style={{ width: `${pct}%` }} />
