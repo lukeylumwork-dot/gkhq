@@ -37,6 +37,7 @@ type MediaChipInfo = {
   filePath: string;
   mimeType: string | null;
   fileSize: number | null;
+  createdAt: string;
 };
 
 function DraftStatusIndicator({
@@ -515,6 +516,7 @@ function ReportForm({ onDone }: { onDone: () => void }) {
             filePath: a.file_path,
             mimeType: a.mime_type,
             fileSize: a.file_size,
+            createdAt: a.created_at,
           };
           return next;
         });
@@ -1184,6 +1186,67 @@ async function computeWaveform(url: string, bars = 32): Promise<number[]> {
 }
 
 const MAX_WAVEFORM_BYTES = 8 * 1024 * 1024;
+const MAX_PDF_PAGECOUNT_BYTES = 6 * 1024 * 1024;
+
+const durationCache = new Map<string, number>();
+const pageCountCache = new Map<string, number>();
+
+function formatDuration(secs: number): string {
+  if (!Number.isFinite(secs) || secs <= 0) return "—";
+  const s = Math.round(secs);
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const r = s % 60;
+  const mm = String(m).padStart(h > 0 ? 2 : 1, "0");
+  const rr = String(r).padStart(2, "0");
+  return h > 0 ? `${h}:${mm}:${rr}` : `${mm}:${rr}`;
+}
+
+function formatUploadedDate(iso: string): string {
+  try {
+    const d = new Date(iso);
+    const now = new Date();
+    const sameYear = d.getFullYear() === now.getFullYear();
+    return d.toLocaleDateString(undefined, sameYear
+      ? { month: "short", day: "numeric" }
+      : { month: "short", day: "numeric", year: "numeric" });
+  } catch { return ""; }
+}
+
+function basename(path: string): string {
+  const b = path.split("/").pop() || path;
+  // strip our upload prefix `${ts}-${rand}-`
+  return b.replace(/^\d{10,}-[a-z0-9]{4,10}-/i, "");
+}
+
+async function probeMediaDuration(url: string, kind: "audio" | "video"): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const el: HTMLMediaElement = kind === "video" ? document.createElement("video") : document.createElement("audio");
+    el.preload = "metadata";
+    el.muted = true;
+    const cleanup = () => { el.src = ""; el.remove(); };
+    el.onloadedmetadata = () => {
+      const d = el.duration;
+      cleanup();
+      resolve(Number.isFinite(d) ? d : NaN);
+    };
+    el.onerror = () => { cleanup(); reject(new Error("duration probe failed")); };
+    el.src = url;
+  });
+}
+
+async function probePdfPageCount(url: string): Promise<number> {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error("pdf fetch failed");
+  const text = await res.text();
+  // Prefer the root /Pages object's /Count.
+  const rootMatch = text.match(/\/Type\s*\/Pages[\s\S]{0,400}?\/Count\s+(\d+)/);
+  if (rootMatch) return parseInt(rootMatch[1], 10);
+  // Fallback: count Page objects (not Pages).
+  const pageMatches = text.match(/\/Type\s*\/Page[^s]/g);
+  if (pageMatches) return pageMatches.length;
+  throw new Error("page count not found");
+}
 
 function MediaChipPreview({ id, info, tone }: {
   id: string;
@@ -1195,6 +1258,12 @@ function MediaChipPreview({ id, info, tone }: {
   );
   const [wave, setWave] = useState<number[] | null>(
     info?.kind === "audio" ? waveformCache.get(id) ?? null : null,
+  );
+  const [duration, setDuration] = useState<number | null>(
+    info && (info.kind === "audio" || info.kind === "video") ? durationCache.get(id) ?? null : null,
+  );
+  const [pageCount, setPageCount] = useState<number | null>(
+    info?.kind === "pdf" ? pageCountCache.get(id) ?? null : null,
   );
 
   // Signed URL for image/video thumbnail
@@ -1230,11 +1299,44 @@ function MediaChipPreview({ id, info, tone }: {
     return () => { cancelled = true; };
   }, [id, info?.kind, info?.filePath, info?.fileSize]);
 
+  // Duration for audio/video
+  useEffect(() => {
+    if (!info || (info.kind !== "audio" && info.kind !== "video")) return;
+    if (durationCache.has(id)) { setDuration(durationCache.get(id)!); return; }
+    let cancelled = false;
+    getSignedUrl(info.filePath, 3600)
+      .then((u) => probeMediaDuration(u, info.kind as "audio" | "video"))
+      .then((d) => {
+        if (cancelled || !Number.isFinite(d)) return;
+        durationCache.set(id, d);
+        setDuration(d);
+      })
+      .catch(() => { /* leave null */ });
+    return () => { cancelled = true; };
+  }, [id, info?.kind, info?.filePath]);
+
+  // Page count for PDF (bounded)
+  useEffect(() => {
+    if (!info || info.kind !== "pdf") return;
+    if (pageCountCache.has(id)) { setPageCount(pageCountCache.get(id)!); return; }
+    if (info.fileSize && info.fileSize > MAX_PDF_PAGECOUNT_BYTES) return;
+    let cancelled = false;
+    getSignedUrl(info.filePath, 3600)
+      .then((u) => probePdfPageCount(u))
+      .then((n) => {
+        if (cancelled) return;
+        pageCountCache.set(id, n);
+        setPageCount(n);
+      })
+      .catch(() => { /* leave null */ });
+    return () => { cancelled = true; };
+  }, [id, info?.kind, info?.filePath, info?.fileSize]);
+
   const toneCls =
     tone === "added"
       ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30"
       : tone === "removed"
-        ? "bg-rose-500/15 text-rose-700 dark:text-rose-300 border-rose-500/30 line-through decoration-rose-500/60"
+        ? "bg-rose-500/15 text-rose-700 dark:text-rose-300 border-rose-500/30"
         : "bg-background text-foreground/70 border-border";
 
   const kindGlyph =
@@ -1244,51 +1346,82 @@ function MediaChipPreview({ id, info, tone }: {
     info?.kind === "audio" ? "🔊" : "📎";
 
   const title = info?.title ?? `…${id.slice(-6)}`;
+  const filename = info ? basename(info.filePath) : "";
+  const uploadedLabel = info?.createdAt ? formatUploadedDate(info.createdAt) : "";
+  const sizeLabel = info?.fileSize != null ? formatBytes(info.fileSize) : "";
+  const primaryDetail =
+    info?.kind === "audio" || info?.kind === "video"
+      ? (duration != null ? formatDuration(duration) : "…")
+      : info?.kind === "pdf"
+        ? (pageCount != null ? `${pageCount} page${pageCount === 1 ? "" : "s"}` : "PDF")
+        : "";
+
   const titleHint =
-    tone === "added" ? "Only in other tab — will be added if you accept remote" :
-    tone === "removed" ? "Only in this tab — will be removed if you accept remote" :
-    "In both drafts";
+    (tone === "added" ? "Only in other tab — will be added if you accept remote" :
+      tone === "removed" ? "Only in this tab — will be removed if you accept remote" :
+      "In both drafts") +
+    (info ? `\n${filename}${primaryDetail ? " · " + primaryDetail : ""}${sizeLabel ? " · " + sizeLabel : ""}${uploadedLabel ? " · uploaded " + uploadedLabel : ""}` : "");
 
   // Preview visual
   let preview: ReactNode = null;
   if (thumbUrl && (info?.kind === "image" || info?.kind === "video")) {
     preview = (
-      <span className="relative size-8 shrink-0 rounded overflow-hidden border border-border/60 bg-background">
+      <span className="relative size-9 shrink-0 rounded overflow-hidden border border-border/60 bg-background">
         <img src={thumbUrl} alt="" className="size-full object-cover" loading="lazy" />
         {info?.kind === "video" && (
-          <span className="absolute inset-0 flex items-center justify-center text-white text-[10px] drop-shadow">▶</span>
+          <span className="absolute inset-0 flex items-center justify-center text-white text-[11px] drop-shadow">▶</span>
         )}
       </span>
     );
   } else if (info?.kind === "pdf") {
     preview = (
-      <span className="size-8 shrink-0 rounded border border-rose-500/40 bg-rose-500/10 text-rose-700 dark:text-rose-300 flex flex-col items-center justify-center leading-none">
+      <span className="size-9 shrink-0 rounded border border-rose-500/40 bg-rose-500/10 text-rose-700 dark:text-rose-300 flex flex-col items-center justify-center leading-none">
         <span className="text-[9px] font-bold tracking-wider">PDF</span>
-        <span className="text-[8px] opacity-70">p.1</span>
+        <span className="text-[8px] opacity-70">{pageCount != null ? `${pageCount}p` : "p.1"}</span>
       </span>
     );
   } else if (info?.kind === "audio") {
     preview = (
-      <span className="size-8 shrink-0 rounded border border-border/60 bg-background flex items-center justify-center px-0.5">
+      <span className="size-9 shrink-0 rounded border border-border/60 bg-background flex items-center justify-center px-0.5">
         <Waveform peaks={wave} />
       </span>
     );
   } else {
     preview = (
-      <span className="size-8 shrink-0 rounded border border-border/60 bg-background flex items-center justify-center text-sm">
+      <span className="size-9 shrink-0 rounded border border-border/60 bg-background flex items-center justify-center text-sm">
         {kindGlyph}
       </span>
     );
   }
 
+  const metaParts: string[] = [];
+  if (primaryDetail) metaParts.push(primaryDetail);
+  if (sizeLabel) metaParts.push(sizeLabel);
+  if (uploadedLabel) metaParts.push(uploadedLabel);
+
+  const titleCls =
+    tone === "removed" ? "line-through decoration-rose-500/60 truncate font-medium" : "truncate font-medium";
+
   return (
     <span
       title={titleHint}
-      className={`inline-flex items-center gap-1.5 rounded pl-1 pr-1.5 py-0.5 border text-[11px] max-w-[15rem] ${toneCls}`}
+      className={`inline-flex items-start gap-2 rounded pl-1 pr-2 py-1 border text-[11px] max-w-[18rem] ${toneCls}`}
     >
       {preview}
-      {tone === "added" && <span className="font-semibold">+</span>}
-      <span className="truncate">{title}</span>
+      <span className="min-w-0 flex flex-col leading-tight">
+        <span className={titleCls}>
+          {tone === "added" && <span className="font-semibold mr-0.5">+</span>}
+          {title}
+        </span>
+        {filename && filename !== title && (
+          <span className="text-[10px] opacity-75 truncate">{filename}</span>
+        )}
+        {metaParts.length > 0 && (
+          <span className="text-[10px] opacity-70 truncate tabular-nums">
+            {metaParts.join(" · ")}
+          </span>
+        )}
+      </span>
     </span>
   );
 }
