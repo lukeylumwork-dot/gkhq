@@ -22,6 +22,9 @@ export default defineTool({
       },
     );
     const uid = ctx.getUserId();
+    if (!uid) {
+      return { content: [{ type: "text", text: "Missing user id" }], isError: true };
+    }
     const [{ data: profile }, { data: roles }] = await Promise.all([
       supabase.from("profiles").select("id,email,name,initials,title,mentor_id").eq("id", uid).maybeSingle(),
       supabase.from("user_roles").select("role").eq("user_id", uid),
