@@ -22,6 +22,7 @@ import { Route as AuditRouteImport } from './routes/audit'
 import { Route as AlertsRouteImport } from './routes/alerts'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SystemUsersRouteImport } from './routes/system.users'
+import { Route as SystemPermissionsRouteImport } from './routes/system.permissions'
 import { Route as ReportsReportIdRouteImport } from './routes/reports.$reportId'
 import { Route as GoalkeepersGkIdRouteImport } from './routes/goalkeepers.$gkId'
 
@@ -90,6 +91,11 @@ const SystemUsersRoute = SystemUsersRouteImport.update({
   path: '/system/users',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SystemPermissionsRoute = SystemPermissionsRouteImport.update({
+  id: '/system/permissions',
+  path: '/system/permissions',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ReportsReportIdRoute = ReportsReportIdRouteImport.update({
   id: '/$reportId',
   path: '/$reportId',
@@ -116,6 +122,7 @@ export interface FileRoutesByFullPath {
   '/reports': typeof ReportsRouteWithChildren
   '/goalkeepers/$gkId': typeof GoalkeepersGkIdRoute
   '/reports/$reportId': typeof ReportsReportIdRoute
+  '/system/permissions': typeof SystemPermissionsRoute
   '/system/users': typeof SystemUsersRoute
 }
 export interface FileRoutesByTo {
@@ -133,6 +140,7 @@ export interface FileRoutesByTo {
   '/reports': typeof ReportsRouteWithChildren
   '/goalkeepers/$gkId': typeof GoalkeepersGkIdRoute
   '/reports/$reportId': typeof ReportsReportIdRoute
+  '/system/permissions': typeof SystemPermissionsRoute
   '/system/users': typeof SystemUsersRoute
 }
 export interface FileRoutesById {
@@ -151,6 +159,7 @@ export interface FileRoutesById {
   '/reports': typeof ReportsRouteWithChildren
   '/goalkeepers/$gkId': typeof GoalkeepersGkIdRoute
   '/reports/$reportId': typeof ReportsReportIdRoute
+  '/system/permissions': typeof SystemPermissionsRoute
   '/system/users': typeof SystemUsersRoute
 }
 export interface FileRouteTypes {
@@ -170,6 +179,7 @@ export interface FileRouteTypes {
     | '/reports'
     | '/goalkeepers/$gkId'
     | '/reports/$reportId'
+    | '/system/permissions'
     | '/system/users'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -187,6 +197,7 @@ export interface FileRouteTypes {
     | '/reports'
     | '/goalkeepers/$gkId'
     | '/reports/$reportId'
+    | '/system/permissions'
     | '/system/users'
   id:
     | '__root__'
@@ -204,6 +215,7 @@ export interface FileRouteTypes {
     | '/reports'
     | '/goalkeepers/$gkId'
     | '/reports/$reportId'
+    | '/system/permissions'
     | '/system/users'
   fileRoutesById: FileRoutesById
 }
@@ -220,6 +232,7 @@ export interface RootRouteChildren {
   MediaRoute: typeof MediaRoute
   MentorsRoute: typeof MentorsRoute
   ReportsRoute: typeof ReportsRouteWithChildren
+  SystemPermissionsRoute: typeof SystemPermissionsRoute
   SystemUsersRoute: typeof SystemUsersRoute
 }
 
@@ -316,6 +329,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SystemUsersRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/system/permissions': {
+      id: '/system/permissions'
+      path: '/system/permissions'
+      fullPath: '/system/permissions'
+      preLoaderRoute: typeof SystemPermissionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/reports/$reportId': {
       id: '/reports/$reportId'
       path: '/$reportId'
@@ -369,6 +389,7 @@ const rootRouteChildren: RootRouteChildren = {
   MediaRoute: MediaRoute,
   MentorsRoute: MentorsRoute,
   ReportsRoute: ReportsRouteWithChildren,
+  SystemPermissionsRoute: SystemPermissionsRoute,
   SystemUsersRoute: SystemUsersRoute,
 }
 export const routeTree = rootRouteImport
