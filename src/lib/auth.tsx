@@ -9,10 +9,21 @@ export interface SessionUser {
   name: string;
   email: string;
   role: Role;
+  actualRole: Role;
   initials: string;
   title: string;
   mentorId?: string;
 }
+
+const VIEW_AS_KEY = "rpm.viewAsRole";
+function readViewAs(): Role | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const v = window.localStorage.getItem(VIEW_AS_KEY);
+    return v === "super_admin" || v === "admin" || v === "mentor_manager" || v === "mentor" ? v : null;
+  } catch { return null; }
+}
+
 
 // Reference directory of known team members (for name/initials lookups in the UI only).
 // Login and role assignment go through Supabase Auth + the user_roles table — not this list.
