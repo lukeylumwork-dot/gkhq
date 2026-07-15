@@ -9,7 +9,7 @@ export interface SessionUser {
   name: string;
   email: string;
   role: Role;
-  actualRole: Role;
+  actualRole?: Role;
   initials: string;
   title: string;
   mentorId?: string;
