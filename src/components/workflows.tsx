@@ -710,14 +710,72 @@ function ReportForm({ onDone }: { onDone: () => void }) {
                         const dimCell = "opacity-50";
                         const mineActive = state === "rejected" || !state;
                         const theirsActive = state === "accepted" || !state;
+                        const kindGlyph = (k?: MediaKind) => k === "video" ? "🎬" : k === "pdf" ? "📄" : k === "image" ? "🖼️" : k === "audio" ? "🔊" : "📎";
+                        const chipLabel = (id: string) => {
+                          const m = mediaTitles[id];
+                          return m ? `${kindGlyph(m.kind)} ${m.title}` : `📎 …${id.slice(-6)}`;
+                        };
+                        const md = r.mediaDiff;
+                        const bothSides = md && md.added.length > 0 && md.removed.length > 0;
                         return (
                           <Fragment key={r.key}>
-                            <div className="px-2 py-1 border-t border-border/60 text-foreground/80 truncate">{r.label}</div>
+                            <div className="px-2 py-1 border-t border-border/60 text-foreground/80 truncate">
+                              {r.label}
+                              {md && (
+                                <div className="text-[10px] font-normal text-muted-foreground normal-case tracking-normal mt-0.5">
+                                  {bothSides ? "replaced · " : ""}
+                                  {md.added.length > 0 && <span className="text-emerald-600 dark:text-emerald-400">+{md.added.length}</span>}
+                                  {md.added.length > 0 && md.removed.length > 0 && " / "}
+                                  {md.removed.length > 0 && <span className="text-rose-600 dark:text-rose-400">−{md.removed.length}</span>}
+                                  {md.kept.length > 0 && <span className="text-muted-foreground"> · {md.kept.length} kept</span>}
+                                </div>
+                              )}
+                            </div>
                             <div className={`${cellBase} ${mineActive ? activeCell : dimCell}`}>
-                              <span className="rounded px-1 bg-amber-500/20 text-foreground break-words">{r.mine}</span>
+                              {md ? (
+                                <div className="flex flex-wrap gap-1">
+                                  {md.removed.length === 0 && md.kept.length === 0 && (
+                                    <span className="text-muted-foreground italic">nothing attached</span>
+                                  )}
+                                  {md.removed.map((id) => (
+                                    <span key={id} title="Only in this tab — will be removed if you accept remote"
+                                      className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-500/30 line-through decoration-rose-500/60 text-[11px]">
+                                      {chipLabel(id)}
+                                    </span>
+                                  ))}
+                                  {md.kept.map((id) => (
+                                    <span key={id} title="In both drafts"
+                                      className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 bg-background text-foreground/70 border border-border text-[11px]">
+                                      {chipLabel(id)}
+                                    </span>
+                                  ))}
+                                </div>
+                              ) : (
+                                <span className="rounded px-1 bg-amber-500/20 text-foreground break-words">{r.mine}</span>
+                              )}
                             </div>
                             <div className={`${cellBase} ${theirsActive ? activeCell : dimCell}`}>
-                              <span className="rounded px-1 bg-amber-500/20 text-foreground break-words">{r.theirs}</span>
+                              {md ? (
+                                <div className="flex flex-wrap gap-1">
+                                  {md.added.length === 0 && md.kept.length === 0 && (
+                                    <span className="text-muted-foreground italic">nothing attached</span>
+                                  )}
+                                  {md.added.map((id) => (
+                                    <span key={id} title="Only in other tab — will be added if you accept remote"
+                                      className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 text-[11px]">
+                                      <span className="font-semibold">+</span>{chipLabel(id)}
+                                    </span>
+                                  ))}
+                                  {md.kept.map((id) => (
+                                    <span key={id} title="In both drafts"
+                                      className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 bg-background text-foreground/70 border border-border text-[11px]">
+                                      {chipLabel(id)}
+                                    </span>
+                                  ))}
+                                </div>
+                              ) : (
+                                <span className="rounded px-1 bg-amber-500/20 text-foreground break-words">{r.theirs}</span>
+                              )}
                             </div>
                             <div className={`${cellBase} whitespace-nowrap`}>
                               {state ? (
