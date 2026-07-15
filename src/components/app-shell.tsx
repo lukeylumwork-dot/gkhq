@@ -150,7 +150,7 @@ export function AppShell() {
             <div className="hidden md:inline-flex items-center gap-1.5 h-7 px-2 rounded-md bg-primary/10 border border-primary/30 text-primary text-[10px] font-medium uppercase tracking-wider"><ShieldCheck className="size-3" />{ROLE_LABEL[user.role]}</div>
           )}
           {primaryAction && (
-            <button onClick={() => setWorkflow(primaryAction.kind)} className="hidden sm:inline-flex items-center gap-1.5 h-9 px-3 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:opacity-90">
+            <button onClick={() => setWorkflow(primaryAction.kind)} className="hidden sm:inline-flex items-center gap-1.5 h-9 px-3 rounded-md bg-primary text-primary-foreground text-xs uppercase tracking-[0.06em] font-semibold hover:opacity-90">
               <Plus className="size-4" />{primaryAction.label}
             </button>
           )}
@@ -158,7 +158,7 @@ export function AppShell() {
             onClick={() => { signOut(); navigate({ to: "/login" as never }); }}
             title="Sign out"
             aria-label="Sign out"
-            className="inline-flex items-center gap-1.5 h-9 px-2.5 md:px-3 rounded-md border border-border text-sm hover:bg-accent"
+            className="inline-flex items-center gap-1.5 h-9 px-2.5 md:px-3 rounded-md border border-border text-xs uppercase tracking-[0.06em] font-semibold hover:bg-accent"
           >
             <LogOut className="size-4" />
             <span className="hidden md:inline">Sign out</span>
@@ -167,7 +167,7 @@ export function AppShell() {
             <button onClick={() => setBellOpen((v) => !v)} className="relative size-9 grid place-items-center rounded-md border border-border hover:bg-accent">
               <BellRing className="size-4" />
               {notif.unread > 0 && (
-                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-destructive text-destructive-foreground text-[10px] font-semibold grid place-items-center">
+                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-destructive text-destructive-foreground text-[10px] font-mono font-semibold grid place-items-center">
                   {notif.unread > 9 ? "9+" : notif.unread}
                 </span>
               )}
