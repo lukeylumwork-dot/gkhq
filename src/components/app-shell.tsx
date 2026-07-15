@@ -24,7 +24,7 @@ const NAV: NavItem[] = [
 ];
 
 export function AppShell() {
-  const { user, can, signOut } = useAuth();
+  const { user, can, signOut, setViewAsRole } = useAuth();
   const path = useRouterState({ select: (s) => s.location.pathname });
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
