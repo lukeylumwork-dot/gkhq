@@ -9,10 +9,21 @@ export interface SessionUser {
   name: string;
   email: string;
   role: Role;
+  actualRole?: Role;
   initials: string;
   title: string;
   mentorId?: string;
 }
+
+const VIEW_AS_KEY = "rpm.viewAsRole";
+function readViewAs(): Role | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const v = window.localStorage.getItem(VIEW_AS_KEY);
+    return v === "super_admin" || v === "admin" || v === "mentor_manager" || v === "mentor" ? v : null;
+  } catch { return null; }
+}
+
 
 // Reference directory of known team members (for name/initials lookups in the UI only).
 // Login and role assignment go through Supabase Auth + the user_roles table — not this list.
@@ -97,7 +108,9 @@ interface AuthState {
   signUp: (email: string, password: string, name: string) => Promise<{ ok: true } | { ok: false; error: string }>;
   signOut: () => Promise<void>;
   can: (p: Permission) => boolean;
+  setViewAsRole: (role: Role | null) => void;
 }
+
 
 const Ctx = createContext<AuthState | null>(null);
 
@@ -133,16 +146,22 @@ async function loadSessionUser(session: Session | null): Promise<SessionUser | n
   const name = profile?.name || fallbackName;
   const initials = profile?.initials || name.slice(0, 2).toUpperCase();
 
+  const actualRole = role;
+  const override = readViewAs();
+  const effectiveRole: Role = actualRole === "super_admin" && override ? override : actualRole;
+
   return {
     id: uid,
     email,
     name,
     initials,
     title: profile?.title ?? "",
-    role,
+    role: effectiveRole,
+    actualRole,
     mentorId: profile?.mentor_id ?? undefined,
   };
 }
+
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<SessionUser | null>(null);
@@ -207,14 +226,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const can = (p: Permission) => !!user && MATRIX[user.role].includes(p);
 
+  const setViewAsRole: AuthState["setViewAsRole"] = (role) => {
+    if (typeof window === "undefined") return;
+    try {
+      if (role) window.localStorage.setItem(VIEW_AS_KEY, role);
+      else window.localStorage.removeItem(VIEW_AS_KEY);
+    } catch { /* ignore */ }
+    setUser((u) => {
+      if (!u || !u.actualRole) return u;
+      const next: Role = u.actualRole === "super_admin" && role ? role : u.actualRole;
+      return { ...u, role: next };
+    });
+  };
+
   if (!hydrated) return <div className="min-h-screen bg-background" />;
 
   return (
-    <Ctx.Provider value={{ user, loading, signIn, signUp, signOut, can }}>
+    <Ctx.Provider value={{ user, loading, signIn, signUp, signOut, can, setViewAsRole }}>
       {children}
     </Ctx.Provider>
   );
 }
+
 
 export function useAuth() {
   const v = useContext(Ctx);
