@@ -303,7 +303,7 @@ function ReportForm({ onDone }: { onDone: () => void }) {
         setDraftSavedAt(res.savedAt);
         setSaveStatus("saved");
       } else if ("conflict" in res) {
-        setConflict(res.conflict);
+        raiseConflict(res.conflict);
         setSaveStatus("idle");
       } else {
         setSaveStatus("failed");
