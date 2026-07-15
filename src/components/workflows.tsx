@@ -275,7 +275,7 @@ function ReportForm({ onDone }: { onDone: () => void }) {
         mine.comments !== remote.comments ||
         JSON.stringify(mine.scores) !== JSON.stringify(remote.scores) ||
         JSON.stringify(mine.selectedMedia) !== JSON.stringify(remote.selectedMedia);
-      if (differs) setConflict(remote);
+      if (differs) raiseConflict(remote);
       else {
         // No local divergence — silently fast-forward.
         localVersionRef.current = remote.version;
