@@ -222,6 +222,7 @@ function ReportForm({ onDone }: { onDone: () => void }) {
   const [conflict, setConflict] = useState<ReportDraft | null>(null);
   const [resolutions, setResolutions] = useState<Record<string, "accepted" | "rejected">>({});
   const preConflictLocalRef = useRef<ReportDraftSnapshot | null>(null);
+  const [mediaTitles, setMediaTitles] = useState<Record<string, { title: string; kind: MediaKind }>>({});
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "failed">("idle");
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
