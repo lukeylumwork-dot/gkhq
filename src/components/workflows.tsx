@@ -5,7 +5,8 @@ import { goalkeepers, mentors } from "@/lib/mock-data";
 import { useAuth, type SessionUser } from "@/lib/auth";
 import {
   ACCEPT_BY_KIND, MAX_FILE_BYTES, detectKind, formatBytes, uploadMedia,
-  updateMedia, listMedia, attachMediaToReport, getMediaByIds, RATING_TAG_OPTIONS,
+  updateMedia, listMedia, attachMediaToReport, getMediaByIds, getSignedUrl,
+  RATING_TAG_OPTIONS,
   type MediaAsset, type MediaKind,
 } from "@/lib/media-store";
 import { HandwrittenNotesField } from "@/components/handwritten-notes-field";
@@ -28,6 +29,15 @@ function formatDraftTime(iso: string): string {
     return sameDay ? t : `${d.toLocaleDateString()} ${t}`;
   } catch { return iso; }
 }
+
+type MediaChipInfo = {
+  title: string;
+  kind: MediaKind;
+  thumbnailPath: string | null;
+  filePath: string;
+  mimeType: string | null;
+  fileSize: number | null;
+};
 
 function DraftStatusIndicator({
   status,
@@ -222,7 +232,7 @@ function ReportForm({ onDone }: { onDone: () => void }) {
   const [conflict, setConflict] = useState<ReportDraft | null>(null);
   const [resolutions, setResolutions] = useState<Record<string, "accepted" | "rejected">>({});
   const preConflictLocalRef = useRef<ReportDraftSnapshot | null>(null);
-  const [mediaTitles, setMediaTitles] = useState<Record<string, { title: string; kind: MediaKind }>>({});
+  const [mediaTitles, setMediaTitles] = useState<Record<string, MediaChipInfo>>({});
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "failed">("idle");
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -498,7 +508,14 @@ function ReportForm({ onDone }: { onDone: () => void }) {
         if (cancelled) return;
         setMediaTitles((prev) => {
           const next = { ...prev };
-          for (const a of assets) next[a.id] = { title: a.title, kind: a.media_type };
+          for (const a of assets) next[a.id] = {
+            title: a.title,
+            kind: a.media_type,
+            thumbnailPath: a.thumbnail_path,
+            filePath: a.file_path,
+            mimeType: a.mime_type,
+            fileSize: a.file_size,
+          };
           return next;
         });
       })
@@ -705,11 +722,6 @@ function ReportForm({ onDone }: { onDone: () => void }) {
                         const dimCell = "opacity-50";
                         const mineActive = state === "rejected" || !state;
                         const theirsActive = state === "accepted" || !state;
-                        const kindGlyph = (k?: MediaKind) => k === "video" ? "🎬" : k === "pdf" ? "📄" : k === "image" ? "🖼️" : k === "audio" ? "🔊" : "📎";
-                        const chipLabel = (id: string) => {
-                          const m = mediaTitles[id];
-                          return m ? `${kindGlyph(m.kind)} ${m.title}` : `📎 …${id.slice(-6)}`;
-                        };
                         const md = r.mediaDiff;
                         const bothSides = md && md.added.length > 0 && md.removed.length > 0;
                         return (
@@ -733,16 +745,10 @@ function ReportForm({ onDone }: { onDone: () => void }) {
                                     <span className="text-muted-foreground italic">nothing attached</span>
                                   )}
                                   {md.removed.map((id) => (
-                                    <span key={id} title="Only in this tab — will be removed if you accept remote"
-                                      className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-500/30 line-through decoration-rose-500/60 text-[11px]">
-                                      {chipLabel(id)}
-                                    </span>
+                                    <MediaChipPreview key={id} id={id} info={mediaTitles[id]} tone="removed" />
                                   ))}
                                   {md.kept.map((id) => (
-                                    <span key={id} title="In both drafts"
-                                      className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 bg-background text-foreground/70 border border-border text-[11px]">
-                                      {chipLabel(id)}
-                                    </span>
+                                    <MediaChipPreview key={id} id={id} info={mediaTitles[id]} tone="kept" />
                                   ))}
                                 </div>
                               ) : (
@@ -756,16 +762,10 @@ function ReportForm({ onDone }: { onDone: () => void }) {
                                     <span className="text-muted-foreground italic">nothing attached</span>
                                   )}
                                   {md.added.map((id) => (
-                                    <span key={id} title="Only in other tab — will be added if you accept remote"
-                                      className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 text-[11px]">
-                                      <span className="font-semibold">+</span>{chipLabel(id)}
-                                    </span>
+                                    <MediaChipPreview key={id} id={id} info={mediaTitles[id]} tone="added" />
                                   ))}
                                   {md.kept.map((id) => (
-                                    <span key={id} title="In both drafts"
-                                      className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 bg-background text-foreground/70 border border-border text-[11px]">
-                                      {chipLabel(id)}
-                                    </span>
+                                    <MediaChipPreview key={id} id={id} info={mediaTitles[id]} tone="kept" />
                                   ))}
                                 </div>
                               ) : (
@@ -1146,3 +1146,166 @@ function GoalkeeperForm({ onDone }: { onDone: () => void }) {
     </form>
   );
 }
+
+// ---------- Inline media preview for the conflict diff ----------
+
+const thumbUrlCache = new Map<string, string>();
+const waveformCache = new Map<string, number[]>();
+
+async function computeWaveform(url: string, bars = 32): Promise<number[]> {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error("audio fetch failed");
+  const buf = await res.arrayBuffer();
+  const AC: typeof AudioContext =
+    (window.AudioContext as typeof AudioContext) ||
+    ((window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext as typeof AudioContext);
+  const ctx = new AC();
+  try {
+    const audio = await ctx.decodeAudioData(buf);
+    const data = audio.getChannelData(0);
+    const step = Math.max(1, Math.floor(data.length / bars));
+    const peaks: number[] = [];
+    let max = 0;
+    for (let i = 0; i < bars; i++) {
+      let peak = 0;
+      const start = i * step;
+      const end = Math.min(data.length, start + step);
+      for (let j = start; j < end; j++) {
+        const v = Math.abs(data[j]);
+        if (v > peak) peak = v;
+      }
+      peaks.push(peak);
+      if (peak > max) max = peak;
+    }
+    return peaks.map((p) => (max > 0 ? p / max : 0));
+  } finally {
+    try { await ctx.close(); } catch { /* noop */ }
+  }
+}
+
+const MAX_WAVEFORM_BYTES = 8 * 1024 * 1024;
+
+function MediaChipPreview({ id, info, tone }: {
+  id: string;
+  info: MediaChipInfo | undefined;
+  tone: "added" | "removed" | "kept";
+}) {
+  const [thumbUrl, setThumbUrl] = useState<string | null>(
+    info?.thumbnailPath ? thumbUrlCache.get(info.thumbnailPath) ?? null : null,
+  );
+  const [wave, setWave] = useState<number[] | null>(
+    info?.kind === "audio" ? waveformCache.get(id) ?? null : null,
+  );
+
+  // Signed URL for image/video thumbnail
+  useEffect(() => {
+    if (!info?.thumbnailPath) return;
+    const cached = thumbUrlCache.get(info.thumbnailPath);
+    if (cached) { setThumbUrl(cached); return; }
+    let cancelled = false;
+    getSignedUrl(info.thumbnailPath, 3600)
+      .then((u) => {
+        if (cancelled) return;
+        thumbUrlCache.set(info.thumbnailPath!, u);
+        setThumbUrl(u);
+      })
+      .catch(() => { /* fall back to icon */ });
+    return () => { cancelled = true; };
+  }, [info?.thumbnailPath]);
+
+  // Waveform for audio (bounded by size)
+  useEffect(() => {
+    if (!info || info.kind !== "audio") return;
+    if (waveformCache.has(id)) { setWave(waveformCache.get(id)!); return; }
+    if (info.fileSize && info.fileSize > MAX_WAVEFORM_BYTES) return;
+    let cancelled = false;
+    getSignedUrl(info.filePath, 3600)
+      .then((u) => computeWaveform(u))
+      .then((peaks) => {
+        if (cancelled) return;
+        waveformCache.set(id, peaks);
+        setWave(peaks);
+      })
+      .catch(() => { /* fall back to icon */ });
+    return () => { cancelled = true; };
+  }, [id, info?.kind, info?.filePath, info?.fileSize]);
+
+  const toneCls =
+    tone === "added"
+      ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30"
+      : tone === "removed"
+        ? "bg-rose-500/15 text-rose-700 dark:text-rose-300 border-rose-500/30 line-through decoration-rose-500/60"
+        : "bg-background text-foreground/70 border-border";
+
+  const kindGlyph =
+    info?.kind === "video" ? "🎬" :
+    info?.kind === "pdf" ? "📄" :
+    info?.kind === "image" ? "🖼️" :
+    info?.kind === "audio" ? "🔊" : "📎";
+
+  const title = info?.title ?? `…${id.slice(-6)}`;
+  const titleHint =
+    tone === "added" ? "Only in other tab — will be added if you accept remote" :
+    tone === "removed" ? "Only in this tab — will be removed if you accept remote" :
+    "In both drafts";
+
+  // Preview visual
+  let preview: ReactNode = null;
+  if (thumbUrl && (info?.kind === "image" || info?.kind === "video")) {
+    preview = (
+      <span className="relative size-8 shrink-0 rounded overflow-hidden border border-border/60 bg-background">
+        <img src={thumbUrl} alt="" className="size-full object-cover" loading="lazy" />
+        {info?.kind === "video" && (
+          <span className="absolute inset-0 flex items-center justify-center text-white text-[10px] drop-shadow">▶</span>
+        )}
+      </span>
+    );
+  } else if (info?.kind === "pdf") {
+    preview = (
+      <span className="size-8 shrink-0 rounded border border-rose-500/40 bg-rose-500/10 text-rose-700 dark:text-rose-300 flex flex-col items-center justify-center leading-none">
+        <span className="text-[9px] font-bold tracking-wider">PDF</span>
+        <span className="text-[8px] opacity-70">p.1</span>
+      </span>
+    );
+  } else if (info?.kind === "audio") {
+    preview = (
+      <span className="size-8 shrink-0 rounded border border-border/60 bg-background flex items-center justify-center px-0.5">
+        <Waveform peaks={wave} />
+      </span>
+    );
+  } else {
+    preview = (
+      <span className="size-8 shrink-0 rounded border border-border/60 bg-background flex items-center justify-center text-sm">
+        {kindGlyph}
+      </span>
+    );
+  }
+
+  return (
+    <span
+      title={titleHint}
+      className={`inline-flex items-center gap-1.5 rounded pl-1 pr-1.5 py-0.5 border text-[11px] max-w-[15rem] ${toneCls}`}
+    >
+      {preview}
+      {tone === "added" && <span className="font-semibold">+</span>}
+      <span className="truncate">{title}</span>
+    </span>
+  );
+}
+
+function Waveform({ peaks }: { peaks: number[] | null }) {
+  const bars = peaks ?? Array.from({ length: 20 }, (_, i) => 0.25 + 0.35 * Math.abs(Math.sin(i * 1.7)));
+  const isReal = peaks !== null;
+  return (
+    <span className="flex items-center gap-[1px] h-full w-full">
+      {bars.map((v, i) => (
+        <span
+          key={i}
+          className={`inline-block flex-1 rounded-sm ${isReal ? "bg-foreground/70" : "bg-foreground/30"}`}
+          style={{ height: `${Math.max(10, Math.round(v * 100))}%` }}
+        />
+      ))}
+    </span>
+  );
+}
+
