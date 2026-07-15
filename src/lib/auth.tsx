@@ -146,16 +146,22 @@ async function loadSessionUser(session: Session | null): Promise<SessionUser | n
   const name = profile?.name || fallbackName;
   const initials = profile?.initials || name.slice(0, 2).toUpperCase();
 
+  const actualRole = role;
+  const override = readViewAs();
+  const effectiveRole: Role = actualRole === "super_admin" && override ? override : actualRole;
+
   return {
     id: uid,
     email,
     name,
     initials,
     title: profile?.title ?? "",
-    role,
+    role: effectiveRole,
+    actualRole,
     mentorId: profile?.mentor_id ?? undefined,
   };
 }
+
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<SessionUser | null>(null);
