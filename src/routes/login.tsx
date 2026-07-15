@@ -79,11 +79,11 @@ function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-6">
       <div className="w-full max-w-md">
-        <div className="flex items-center gap-2.5 mb-10">
-          <div className="size-9 rounded-lg bg-primary text-primary-foreground grid place-items-center font-bold text-sm tracking-tight">GK</div>
-          <div className="leading-tight">
-            <div className="font-semibold tracking-tight text-lg">GKHQ</div>
-            <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Goalkeeper Head Quarters</div>
+        <div className="flex items-center gap-3 mb-10">
+          <img src="/app-icon-120.png" alt="GKHQ" width={40} height={40} className="size-10 rounded-[8px]" />
+          <div className="flex flex-col leading-tight">
+            <img src="/wordmark.png" alt="GKHQ" height={22} className="h-[22px] w-auto" />
+            <div className="text-[11px] uppercase tracking-wider text-muted-foreground mt-1">Goalkeeper Head Quarters</div>
           </div>
         </div>
 
