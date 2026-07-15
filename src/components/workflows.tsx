@@ -814,6 +814,18 @@ function ReportForm({ onDone }: { onDone: () => void }) {
                   {resolvedCount} of {rows.length} resolved
                 </span>
               )}
+              <button type="button"
+                onClick={() => exportConflictJson(buildConflictSummary(rows, conflict, mediaTitles))}
+                className="h-8 px-3 rounded-md border border-border text-xs"
+                title="Download a machine-readable summary of this conflict">
+                Export JSON
+              </button>
+              <button type="button"
+                onClick={() => { void exportConflictPdf(buildConflictSummary(rows, conflict, mediaTitles)); }}
+                className="h-8 px-3 rounded-md border border-border text-xs"
+                title="Download a printable summary of this conflict">
+                Export PDF
+              </button>
               <button type="button" onClick={useTheirs}
                 className="h-8 px-3 rounded-md border border-border text-xs">
                 Use other tab's version
@@ -1441,4 +1453,245 @@ function Waveform({ peaks }: { peaks: number[] | null }) {
     </span>
   );
 }
+
+// ---------- Conflict summary export ----------
+
+type ExportItem = {
+  id: string;
+  title: string;
+  filename: string;
+  kind: MediaKind | "unknown";
+  mimeType: string | null;
+  fileSizeBytes: number | null;
+  uploadedAt: string | null;
+};
+
+type FieldChange = { field: string; label: string; thisTab: string; otherTab: string };
+
+type ConflictSummary = {
+  generatedAt: string;
+  savedAt: string;
+  otherVersion: number;
+  totals: { added: number; removed: number; replacedFields: number; kept: number; fieldChanges: number };
+  media: {
+    added: ExportItem[];
+    removed: ExportItem[];
+    kept: ExportItem[];
+    replacedFields: { field: string; added: ExportItem[]; removed: ExportItem[] }[];
+  };
+  fieldChanges: FieldChange[];
+};
+
+function toExportItem(id: string, info: MediaChipInfo | undefined): ExportItem {
+  if (!info) {
+    return { id, title: `(unknown ${id.slice(-6)})`, filename: "", kind: "unknown", mimeType: null, fileSizeBytes: null, uploadedAt: null };
+  }
+  const b = info.filePath.split("/").pop() || info.filePath;
+  const filename = b.replace(/^\d{10,}-[a-z0-9]{4,10}-/i, "");
+  return {
+    id,
+    title: info.title,
+    filename,
+    kind: info.kind,
+    mimeType: info.mimeType,
+    fileSizeBytes: info.fileSize,
+    uploadedAt: info.createdAt ?? null,
+  };
+}
+
+function buildConflictSummary(
+  rows: { key: string; label: string; mine: string; theirs: string; mediaDiff?: { added: string[]; removed: string[]; kept: string[] } }[],
+  conflict: ReportDraft,
+  mediaTitles: Record<string, MediaChipInfo>,
+): ConflictSummary {
+  const addedIds = new Set<string>();
+  const removedIds = new Set<string>();
+  const keptIds = new Set<string>();
+  const replacedFields: { field: string; added: ExportItem[]; removed: ExportItem[] }[] = [];
+  const fieldChanges: FieldChange[] = [];
+
+  for (const r of rows) {
+    if (r.mediaDiff) {
+      const { added, removed, kept } = r.mediaDiff;
+      added.forEach((id) => addedIds.add(id));
+      removed.forEach((id) => removedIds.add(id));
+      kept.forEach((id) => keptIds.add(id));
+      if (added.length > 0 && removed.length > 0) {
+        replacedFields.push({
+          field: r.label,
+          added: added.map((id) => toExportItem(id, mediaTitles[id])),
+          removed: removed.map((id) => toExportItem(id, mediaTitles[id])),
+        });
+      }
+    } else {
+      fieldChanges.push({ field: r.key, label: r.label, thisTab: r.mine, otherTab: r.theirs });
+    }
+  }
+
+  return {
+    generatedAt: new Date().toISOString(),
+    savedAt: conflict.savedAt,
+    otherVersion: conflict.version,
+    totals: {
+      added: addedIds.size,
+      removed: removedIds.size,
+      replacedFields: replacedFields.length,
+      kept: keptIds.size,
+      fieldChanges: fieldChanges.length,
+    },
+    media: {
+      added: [...addedIds].map((id) => toExportItem(id, mediaTitles[id])),
+      removed: [...removedIds].map((id) => toExportItem(id, mediaTitles[id])),
+      kept: [...keptIds].map((id) => toExportItem(id, mediaTitles[id])),
+      replacedFields,
+    },
+    fieldChanges,
+  };
+}
+
+function triggerDownload(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function timestampSlug(): string {
+  const d = new Date();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}`;
+}
+
+function exportConflictJson(summary: ConflictSummary) {
+  const blob = new Blob([JSON.stringify(summary, null, 2)], { type: "application/json" });
+  triggerDownload(blob, `draft-conflict-${timestampSlug()}.json`);
+}
+
+async function exportConflictPdf(summary: ConflictSummary) {
+  const { jsPDF } = await import("jspdf");
+  const doc = new jsPDF({ unit: "pt", format: "a4" });
+  const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
+  const margin = 40;
+  let y = margin;
+
+  const ensureRoom = (needed: number) => {
+    if (y + needed > pageH - margin) {
+      doc.addPage();
+      y = margin;
+    }
+  };
+  const line = (text: string, opts?: { size?: number; bold?: boolean; color?: [number, number, number]; indent?: number }) => {
+    const size = opts?.size ?? 10;
+    doc.setFont("helvetica", opts?.bold ? "bold" : "normal");
+    doc.setFontSize(size);
+    const [r, g, b] = opts?.color ?? [30, 30, 30];
+    doc.setTextColor(r, g, b);
+    const indent = opts?.indent ?? 0;
+    const wrapped = doc.splitTextToSize(text, pageW - margin * 2 - indent);
+    const lineH = size * 1.25;
+    for (const w of wrapped) {
+      ensureRoom(lineH);
+      doc.text(w, margin + indent, y);
+      y += lineH;
+    }
+  };
+  const gap = (h = 8) => { y += h; };
+  const hr = () => {
+    ensureRoom(10);
+    doc.setDrawColor(200);
+    doc.line(margin, y, pageW - margin, y);
+    y += 8;
+  };
+
+  const fmtBytes = (n: number | null) => n == null ? "—" : (n < 1024 ? `${n} B` : n < 1048576 ? `${(n / 1024).toFixed(1)} KB` : `${(n / 1048576).toFixed(1)} MB`);
+  const fmtDate = (iso: string | null) => {
+    if (!iso) return "—";
+    try { return new Date(iso).toLocaleString(); } catch { return iso; }
+  };
+  const kindLabel = (k: string) => k === "unknown" ? "file" : k;
+
+  // Header
+  line("Draft Conflict Summary", { size: 18, bold: true });
+  gap(2);
+  line(`Generated ${new Date(summary.generatedAt).toLocaleString()}`, { size: 9, color: [110, 110, 110] });
+  line(`Other tab saved at ${new Date(summary.savedAt).toLocaleString()} (v${summary.otherVersion})`, { size: 9, color: [110, 110, 110] });
+  gap(4);
+  hr();
+
+  // Totals
+  line("Totals", { size: 12, bold: true });
+  line(`Media added: ${summary.totals.added}   ·   removed: ${summary.totals.removed}   ·   kept: ${summary.totals.kept}`);
+  line(`Fields with replacements: ${summary.totals.replacedFields}   ·   Non-media field changes: ${summary.totals.fieldChanges}`);
+  gap(6);
+  hr();
+
+  const renderItem = (it: ExportItem, prefix: string, color: [number, number, number]) => {
+    line(`${prefix} ${it.title}`, { size: 10, bold: true, color, indent: 6 });
+    const details: string[] = [];
+    if (it.filename && it.filename !== it.title) details.push(it.filename);
+    details.push(kindLabel(it.kind));
+    if (it.mimeType) details.push(it.mimeType);
+    details.push(fmtBytes(it.fileSizeBytes));
+    details.push(`uploaded ${fmtDate(it.uploadedAt)}`);
+    details.push(`id ${it.id}`);
+    line(details.join(" · "), { size: 8, color: [110, 110, 110], indent: 18 });
+    gap(2);
+  };
+
+  // Added
+  line(`Added (${summary.media.added.length})`, { size: 12, bold: true, color: [16, 122, 74] });
+  if (summary.media.added.length === 0) line("None", { size: 9, color: [140, 140, 140], indent: 6 });
+  else summary.media.added.forEach((it) => renderItem(it, "+", [16, 122, 74]));
+  gap(4);
+
+  // Removed
+  line(`Removed (${summary.media.removed.length})`, { size: 12, bold: true, color: [176, 47, 62] });
+  if (summary.media.removed.length === 0) line("None", { size: 9, color: [140, 140, 140], indent: 6 });
+  else summary.media.removed.forEach((it) => renderItem(it, "−", [176, 47, 62]));
+  gap(4);
+
+  // Replaced (per-field)
+  line(`Replaced fields (${summary.media.replacedFields.length})`, { size: 12, bold: true, color: [170, 110, 20] });
+  if (summary.media.replacedFields.length === 0) {
+    line("None", { size: 9, color: [140, 140, 140], indent: 6 });
+  } else {
+    for (const rf of summary.media.replacedFields) {
+      line(rf.field, { size: 10, bold: true, indent: 6 });
+      rf.removed.forEach((it) => renderItem(it, "−", [176, 47, 62]));
+      rf.added.forEach((it) => renderItem(it, "+", [16, 122, 74]));
+      gap(2);
+    }
+  }
+  gap(4);
+
+  // Kept (compact)
+  if (summary.media.kept.length > 0) {
+    hr();
+    line(`Kept in both drafts (${summary.media.kept.length})`, { size: 11, bold: true, color: [80, 80, 80] });
+    for (const it of summary.media.kept) {
+      line(`• ${it.title}${it.filename && it.filename !== it.title ? ` — ${it.filename}` : ""}`, { size: 9, color: [80, 80, 80], indent: 6 });
+    }
+  }
+
+  // Field changes
+  if (summary.fieldChanges.length > 0) {
+    gap(6);
+    hr();
+    line(`Non-media field changes (${summary.fieldChanges.length})`, { size: 12, bold: true });
+    for (const f of summary.fieldChanges) {
+      line(f.label, { size: 10, bold: true, indent: 6 });
+      line(`This tab: ${f.thisTab || "(empty)"}`, { size: 9, color: [80, 80, 80], indent: 18 });
+      line(`Other tab: ${f.otherTab || "(empty)"}`, { size: 9, color: [80, 80, 80], indent: 18 });
+      gap(2);
+    }
+  }
+
+  doc.save(`draft-conflict-${timestampSlug()}.pdf`);
+}
+
 
