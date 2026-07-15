@@ -1,26 +1,34 @@
-## Per-field Accept/Reject in the conflict banner
+## Wire /system/users to the real user_roles table
 
-Replace the current staged Mine/Theirs toggle + Apply merge flow with instant per-row actions in the diff table.
+Replace the local-storage-backed role editor in `src/routes/system.users.tsx` with real database-backed assign/revoke, using existing `user_roles` + `has_role`. No schema changes.
 
 ### Behavior
 
-- Each diff row gets two buttons: **Accept** (take remote / theirs) and **Reject** (keep local / mine).
-- Clicking either button applies just that field to the form immediately via `applySnapshot` with only that key overridden, then marks the row resolved.
-- Resolved rows collapse to a subtle "Accepted remote" / "Kept local" state with an **Undo** link that returns the row to the pending state (and reverts that field's value in the form).
-- When every row is resolved, the banner auto-finalizes: `overwriteDraft` is called with the merged snapshot at a bumped version, `savedAt` updates, and the conflict clears. On failure we surface the existing error state and keep the banner open.
-- Row resolution state resets whenever a new `conflict` arrives.
-- Header counter changes from "N mine · M theirs" to "X of Y resolved".
+- Page still gated to `system.manage` (super_admin), same as today.
+- User list comes from the database (`profiles` joined with `user_roles`), not `DEMO_USERS` / `usersStore`.
+- Each row's role dropdown offers: **super_admin, admin, mentor_manager, mentor, — no role —**. Changing the selection replaces the user's row in `user_roles` (single-role model — delete existing, insert new; "no role" just deletes).
+- Optimistic toast + query invalidation on success; error toast on failure.
+- Self-guard: the signed-in super_admin cannot change or revoke their own role from this UI (row's dropdown is disabled, tooltip explains why). Prevents lockout.
+- Remove the "Reset to defaults" button and the Active/Deactivate column — both are legacy local-store concepts that don't map to the real backend. The search box stays.
+- The prototype disclaimer footer is removed.
 
-### UI changes (conflict banner only)
+### Server functions (new `src/lib/admin-users.functions.ts`)
 
-- Remove the "Take" column's pill toggle and the footer **Apply merge** button.
-- New per-row action cell: `[Reject] [Accept]` for pending rows; `Accepted remote · Undo` / `Kept local · Undo` for resolved rows.
-- Keep the existing **Keep mine (all)** and **Use theirs (all)** shortcut buttons in the footer unchanged.
+Both use `requireSupabaseAuth` and verify the caller has `super_admin` via `context.supabase.rpc("has_role", { _user_id: context.userId, _role: "super_admin" })`. If not, throw. Then load `supabaseAdmin` inside the handler to read/write across users.
 
-### Technical notes
+- `listManagedUsers()` — returns `[{ id, email, name, initials, title, role | null }]` for every row in `profiles`, joined with the user's highest-precedence role (super_admin > admin > mentor_manager > mentor, matching the precedence already used in `loadSessionUser`).
+- `setManagedUserRole({ userId, role })` — role is `Role | null`. Deletes all `user_roles` rows for the target user, then inserts the new role (skipped when `null`). Rejects when `userId === context.userId` (self-guard on server too).
 
-- File touched: `src/components/workflows.tsx` only.
-- Replace `mergeSelections` state with `resolutions: Record<string, "accepted" | "rejected">` (accepted = remote applied, rejected = local kept).
-- On each click, compute the new resolutions map, then rebuild the field's value from either `conflict.snapshot[key]` (accept) or the pre-conflict local `currentSnapshot()[key]` captured once when the conflict arrived (reject). Store that captured local snapshot in a ref so Undo and mixed resolutions stay consistent even after other fields have been mutated.
-- Auto-finalize effect: when `Object.keys(resolutions).length === diffRows.length`, run the same `overwriteDraft` path today's `applyMerge` uses, then clear conflict + resolutions.
-- No changes to `draft-store.ts`, no schema/backend changes, no new deps.
+Zod validates both inputs.
+
+### Client wiring
+
+- `system.users.tsx` uses TanStack Query: `queryKey: ["managed-users"]`, `queryFn: listManagedUsers`. Show a small skeleton row list while loading and an error state with retry on failure.
+- Dropdown change → `useMutation` calling `setManagedUserRole`, `onSuccess` invalidates `["managed-users"]` and shows a toast; the affected user sees their new role after their next session refresh (documented in a small helper note under the header, replacing the current prototype disclaimer).
+- Remove imports of `usersStore` and `DEMO_USERS` from this file. `users-store.ts` and `DEMO_USERS` stay in the repo untouched — other files still reference them and this task is scoped to the admin UI.
+
+### Files
+
+- New: `src/lib/admin-users.functions.ts`
+- Edited: `src/routes/system.users.tsx`
+- No migrations, no changes to `auth.tsx`, no changes to `users-store.ts`.
