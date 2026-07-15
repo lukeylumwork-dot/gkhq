@@ -356,35 +356,49 @@ function ReportForm({ onDone }: { onDone: () => void }) {
     setConflict(null);
     setSaveStatus("saved");
   };
-  const applyMerge = () => {
-    if (!user || !conflict) return;
-    const mine = currentSnapshot();
-    const merged: ReportDraftSnapshot = { ...mine, scores: { ...mine.scores }, selectedMedia: [...mine.selectedMedia] };
-    for (const [key, side] of Object.entries(mergeSelections)) {
-      if (side !== "theirs") continue;
-      if (key.startsWith("score.")) {
-        const pid = key.slice(6) as PillarId;
-        if (conflict.scores?.[pid] != null) merged.scores[pid] = conflict.scores[pid];
-      } else if (key === "goalkeeper") merged.goalkeeper = conflict.goalkeeper;
-      else if (key === "coach") merged.coach = conflict.coach;
-      else if (key === "team") merged.team = conflict.team;
-      else if (key === "opponent") merged.opponent = conflict.opponent;
-      else if (key === "matchDate") merged.matchDate = conflict.matchDate;
-      else if (key === "comments") merged.comments = conflict.comments;
-      else if (key === "media") merged.selectedMedia = [...(conflict.selectedMedia ?? [])];
-    }
-    applySnapshot(merged);
-    const res = overwriteDraft(user.id, tabIdRef.current, merged);
-    if (res.ok) {
-      localVersionRef.current = res.version;
-      setDraftSavedAt(res.savedAt);
-      setDraftRestoredFrom(res.savedAt);
-      setConflict(null);
-      setSaveStatus("saved");
+  // Capture the local snapshot at the moment a conflict is raised. This is
+  // the stable "mine" reference used for diff rows and Undo.
+  useEffect(() => {
+    if (conflict) {
+      if (!preConflictLocalRef.current) preConflictLocalRef.current = currentSnapshot();
+      setResolutions({});
     } else {
-      setSaveStatus("failed");
+      preConflictLocalRef.current = null;
+      setResolutions({});
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [conflict]);
+
+  const setFieldFromSnapshot = (key: string, snap: ReportDraftSnapshot) => {
+    if (key.startsWith("score.")) {
+      const pid = key.slice(6) as PillarId;
+      setScores((prev) => ({ ...prev, [pid]: snap.scores[pid] }));
+    } else if (key === "goalkeeper") setGoalkeeper(snap.goalkeeper);
+    else if (key === "coach") { if (canOverrideCoach) setCoach(snap.coach); }
+    else if (key === "team") setTeam(snap.team);
+    else if (key === "opponent") setOpponent(snap.opponent);
+    else if (key === "matchDate") { if (snap.matchDate) setMatchDate(snap.matchDate); }
+    else if (key === "comments") setComments(snap.comments);
+    else if (key === "media") setSelectedMedia([...snap.selectedMedia]);
   };
+  const acceptField = (key: string) => {
+    if (!conflict) return;
+    setFieldFromSnapshot(key, conflict);
+    setResolutions((prev) => ({ ...prev, [key]: "accepted" }));
+  };
+  const rejectField = (key: string) => {
+    if (!preConflictLocalRef.current) return;
+    setFieldFromSnapshot(key, preConflictLocalRef.current);
+    setResolutions((prev) => ({ ...prev, [key]: "rejected" }));
+  };
+  const undoField = (key: string) => {
+    if (!preConflictLocalRef.current) return;
+    setFieldFromSnapshot(key, preConflictLocalRef.current);
+    setResolutions((prev) => {
+      const n = { ...prev }; delete n[key]; return n;
+    });
+  };
+
 
   const retrySave = () => {
     if (!user) return;
