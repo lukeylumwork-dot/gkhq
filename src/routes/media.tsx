@@ -110,6 +110,7 @@ function MediaPage() {
           </button>
         ) : null}
       />
+      <DataSourceBanner classification="unverified" />
 
       <Card className="p-3">
         <div className="flex items-center justify-between mb-2">

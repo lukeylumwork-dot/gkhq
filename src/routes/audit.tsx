@@ -49,6 +49,8 @@ function AuditPage() {
         title="Media Audit Log"
         description={loading ? "Loading…" : `${entries.length} recent activity event${entries.length === 1 ? "" : "s"}. Visible to Admin & Director only.`}
       />
+      <DataSourceBanner classification="unverified" />
+
 
       <div className="flex flex-wrap gap-1.5">
         {ACTIONS.map((a) => (
