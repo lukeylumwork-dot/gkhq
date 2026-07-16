@@ -560,54 +560,16 @@ function ReportForm({ onDone }: { onDone: () => void }) {
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     // Phase 1 safety: final submission is temporarily disabled while report
-    // storage is being verified. The Google Sheets serverFn is intentionally
-    // NOT called from this path. Drafts continue to save locally.
+    // storage is being verified. The Google Sheets serverFn (submitFn) and
+    // attachMediaToReport helper are intentionally NOT called from this path.
+    // Drafts continue to save locally. The full submission path remains in
+    // Git history and will be re-enabled once persistence is verified.
+    void submitFn;
+    void attachMediaToReport;
     setError(
       "Final submission is temporarily unavailable while report storage is being verified. Your draft is stored on this device only."
     );
     return;
-    // Preserved (unused) submission path — retained in Git history and behind
-    // this guard for the eventual re-enable once persistence is verified.
-    // eslint-disable-next-line no-unreachable
-    if (!user) { setError("You must be signed in."); return; }
-    setError(null);
-    setFieldErrors({});
-    setSubmitting(true);
-    try {
-      const res = await submitFn({
-        data: {
-          payload: {
-            goalkeeper: goalkeeper.trim(),
-            coach: coach.trim(),
-            team: team.trim(),
-            opponent: opponent.trim(),
-            match_date: matchDate,
-            ...scores,
-            comments: comments.trim(),
-          },
-        },
-      });
-
-
-      // Attach any media picked while composing.
-      if (selectedMedia.length) {
-        try { await attachMediaToReport(res.report_id, selectedMedia, user); }
-        catch (mErr) { console.error("[report] attach media failed:", mErr); }
-      }
-      window.dispatchEvent(new CustomEvent("rpm:report-submitted"));
-      clearDraft(user.id);
-      setDraftSavedAt(null);
-      setDraftRestoredFrom(null);
-      localVersionRef.current = 0;
-      setSaveStatus("idle");
-      setDone({ report_id: res.report_id, average: res.average });
-    } catch (err) {
-      // Zod errors from the server come back stringified; surface plainly.
-      const msg = err instanceof Error ? err.message : "Could not submit report.";
-      setError(msg);
-    } finally {
-      setSubmitting(false);
-    }
   };
 
   return (
