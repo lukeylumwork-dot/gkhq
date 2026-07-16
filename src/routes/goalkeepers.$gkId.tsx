@@ -1,5 +1,6 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { PageHeader, Card, TierBadge, Avatar, Pill, SectionTitle, ProgressBar } from "@/components/primitives";
+import { DataSourceBanner } from "@/lib/data-classification";
 import { goalkeepers, interactions, reports, media, getMentor, formatDate, formatRelative } from "@/lib/mock-data";
 import { ArrowLeft, Video, FileText, Phone, MessageSquare, Eye, Users as UsersIcon } from "lucide-react";
 

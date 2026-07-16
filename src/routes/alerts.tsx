@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { PageHeader, Card, Pill, StatCard } from "@/components/primitives";
+import { DataSourceBanner } from "@/lib/data-classification";
 import { alerts, getGk, formatRelative } from "@/lib/mock-data";
 import { AlertTriangle, Mail, Send, Check, Trash2 } from "lucide-react";
 import { useNotifications, type EmailFrequency } from "@/lib/notifications";

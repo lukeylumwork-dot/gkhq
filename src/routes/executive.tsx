@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { PageHeader, Card, StatCard, SectionTitle, TierBadge, ProgressBar, Pill } from "@/components/primitives";
+import { DataSourceBanner } from "@/lib/data-classification";
 import { goalkeepers, mentors, reports, interactions, stats } from "@/lib/mock-data";
 import { withPermission } from "@/components/require-permission";
 

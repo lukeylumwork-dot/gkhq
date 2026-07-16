@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { PageHeader, Card, Pill, Avatar } from "@/components/primitives";
+import { DataSourceBanner } from "@/lib/data-classification";
 import { interactions, getGk, getMentor, formatDate, formatRelative } from "@/lib/mock-data";
 import { useState } from "react";
 import { withPermission } from "@/components/require-permission";

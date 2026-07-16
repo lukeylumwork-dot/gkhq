@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { PageHeader, Card, TierBadge, Pill, Avatar, ProgressBar } from "@/components/primitives";
+import { DataSourceBanner } from "@/lib/data-classification";
 import { goalkeepers, reports } from "@/lib/mock-data";
 import { useState } from "react";
 import { Video } from "lucide-react";
