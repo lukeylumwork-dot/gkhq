@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { WorkflowDialog, type WorkflowKind } from "@/components/workflows";
 import { useNotifications } from "@/lib/notifications";
 import { formatRelative } from "@/lib/mock-data";
+import { DataSourceBadge } from "@/lib/data-classification";
 
 type NavItem = { to: string; label: string; icon: typeof LayoutDashboard; exact?: boolean; perm: Permission };
 const NAV: NavItem[] = [
