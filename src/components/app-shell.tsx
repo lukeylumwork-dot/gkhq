@@ -114,16 +114,16 @@ export function AppShell() {
             <kbd className="hidden md:inline-flex items-center gap-0.5 absolute right-2 top-1/2 -translate-y-1/2 h-5 px-1.5 rounded border border-border bg-background/60 text-[10px] font-mono text-muted-foreground">⌘K</kbd>
           </div>
           {user.actualRole === "super_admin" ? (
-            <div className="hidden md:inline-flex items-center gap-1.5 h-7 pl-2 pr-1 rounded-md bg-primary/10 border border-primary/30 text-primary text-[10px] font-medium uppercase tracking-wider" title={user.role === user.actualRole ? "View as role (Super Admin only)" : `Viewing as ${ROLE_LABEL[user.role]} · real role: ${ROLE_LABEL[user.actualRole]}`}>
+            <div className="hidden md:inline-flex items-center gap-1.5 h-7 pl-2 pr-1 rounded-md bg-primary/10 border border-primary/30 text-primary text-[10px] font-medium uppercase tracking-wider" title="Interface only — server permissions are unchanged. This preview does not grant or restrict backend access.">
               <ShieldCheck className="size-3" />
               {user.role !== user.actualRole ? (
                 <span className="hidden lg:inline">
                   Viewing as {ROLE_LABEL[user.role]}
                   <span className="mx-1.5 text-primary/60">·</span>
-                  <span className="text-primary/80">{ROLE_LABEL[user.actualRole]}</span>
+                  <span className="text-primary/80 normal-case tracking-normal">interface only</span>
                 </span>
               ) : (
-                <span>View as</span>
+                <span>View as <span className="text-primary/70 normal-case tracking-normal">(interface only)</span></span>
               )}
               <select
                 value={user.role}

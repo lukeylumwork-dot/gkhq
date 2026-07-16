@@ -2,6 +2,7 @@ import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { PageHeader, Card, Pill, SectionTitle } from "@/components/primitives";
+import { DataSourceBanner } from "@/lib/data-classification";
 import { useEffect, useMemo, useState } from "react";
 import { FileText, ChevronRight, RefreshCw } from "lucide-react";
 import { useAuth } from "@/lib/auth";
@@ -73,6 +74,11 @@ function ReportsPage() {
             )}
           </div>
         }
+      />
+
+      <DataSourceBanner
+        classification="transitional"
+        extra="Match report submission uses a transitional Google Sheets connection. Successful persistence has not yet been verified in this environment."
       />
 
       {error ? (

@@ -1,5 +1,7 @@
-// RPM Refuel Performance Management — operational dataset.
-// Built from the February 2026 RPM client list. Hero profiles: James Beadle, Corey Addai.
+// GKHQ by RPM — illustrative preview dataset (Mock).
+// Seeded from the February 2026 client list for interface work only.
+// Not real operational records; every consumer surface is labelled Mock via
+// src/lib/data-classification.tsx.
 
 export type Status = "Elite" | "First Team" | "Development" | "Prospect" | "Free Agent";
 // Legacy alias — many components still import Tier.

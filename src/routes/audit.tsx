@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { PageHeader, Card, Pill } from "@/components/primitives";
+import { DataSourceBanner } from "@/lib/data-classification";
 import { getGk, formatDate } from "@/lib/mock-data";
 import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
@@ -48,6 +49,8 @@ function AuditPage() {
         title="Media Audit Log"
         description={loading ? "Loading…" : `${entries.length} recent activity event${entries.length === 1 ? "" : "s"}. Visible to Admin & Director only.`}
       />
+      <DataSourceBanner classification="unverified" />
+
 
       <div className="flex flex-wrap gap-1.5">
         {ACTIONS.map((a) => (

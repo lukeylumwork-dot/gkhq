@@ -105,7 +105,6 @@ interface AuthState {
   user: SessionUser | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ ok: true } | { ok: false; error: string }>;
-  signUp: (email: string, password: string, name: string) => Promise<{ ok: true } | { ok: false; error: string }>;
   signOut: () => Promise<void>;
   can: (p: Permission) => boolean;
   setViewAsRole: (role: Role | null) => void;
@@ -202,22 +201,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { ok: true };
   };
 
-  const signUp: AuthState["signUp"] = async (email, password, name) => {
-    const emailRedirectTo = typeof window !== "undefined" ? `${window.location.origin}/` : undefined;
-    const { error } = await supabase.auth.signUp({
-      email: email.trim(),
-      password,
-      options: {
-        emailRedirectTo,
-        data: {
-          name,
-          initials: name.slice(0, 2).toUpperCase(),
-        },
-      },
-    });
-    if (error) return { ok: false, error: error.message };
-    return { ok: true };
-  };
+  // Public sign-up is disabled during the pilot (Phase 1.1). Accounts are
+  // provisioned by an admin. The server-side auth signup endpoint remains
+  // reachable until Phase 5.7 disables it in Supabase Auth config.
+
 
   const signOut = async () => {
     await supabase.auth.signOut();
@@ -242,7 +229,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   if (!hydrated) return <div className="min-h-screen bg-background" />;
 
   return (
-    <Ctx.Provider value={{ user, loading, signIn, signUp, signOut, can, setViewAsRole }}>
+    <Ctx.Provider value={{ user, loading, signIn, signOut, can, setViewAsRole }}>
       {children}
     </Ctx.Provider>
   );

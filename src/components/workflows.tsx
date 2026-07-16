@@ -548,7 +548,7 @@ function ReportForm({ onDone }: { onDone: () => void }) {
   if (done) {
     return (
       <Submitted
-        message={`Match report saved to Google Sheet · Average ${done.average.toFixed(1)}`}
+        message={`Submission sent to the RPM Match Reports Google Sheet · Average ${done.average.toFixed(1)}. This connection is transitional — successful persistence has not yet been verified in this environment.`}
         onDone={onDone}
       />
     );
