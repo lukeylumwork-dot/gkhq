@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { PageHeader, Card, Pill } from "@/components/primitives";
+import { DataSourceBanner } from "@/lib/data-classification";
 import { goalkeepers, getGk, formatDate } from "@/lib/mock-data";
 import { Video, FileText, Image as ImageIcon, Mic, Upload, Trash2, ExternalLink, Pencil, Filter, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
