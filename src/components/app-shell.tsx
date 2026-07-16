@@ -178,7 +178,10 @@ export function AppShell() {
                 <div className="fixed inset-0 z-20" onClick={() => setBellOpen(false)} />
                 <div className="absolute right-0 mt-2 w-[360px] rounded-md border border-border bg-popover shadow-xl z-30 overflow-hidden">
                   <div className="flex items-center justify-between px-3 py-2 border-b border-border">
-                    <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Duty Notifications</div>
+                    <div className="flex items-center gap-1.5">
+                      <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Duty Notifications</div>
+                      <DataSourceBadge classification="mock" title="These duty-status notifications are generated from illustrative data." />
+                    </div>
                     <div className="flex items-center gap-1">
                       <button onClick={() => notif.markAllRead()} title="Mark all read" className="p-1 rounded hover:bg-accent text-muted-foreground"><Check className="size-3.5" /></button>
                       <button onClick={() => notif.clearAll()} title="Clear" className="p-1 rounded hover:bg-accent text-muted-foreground"><Trash2 className="size-3.5" /></button>
