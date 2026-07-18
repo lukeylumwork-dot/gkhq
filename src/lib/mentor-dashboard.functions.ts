@@ -5,7 +5,7 @@ import { goalkeepers, interactions, reports, media, calendarEvents, mentors } fr
 import type { TierLevel } from "@/lib/mock-data";
 
 export type UpcomingPlannedType =
-  | "Coffee Meeting"
+  | "Coffee Catch Up"
   | "Attend Live Match"
   | "Training Ground Visit"
   | string;
