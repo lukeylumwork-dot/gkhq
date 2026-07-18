@@ -186,6 +186,7 @@ export const submitMatchReport = createServerFn({ method: "POST" })
             coach: payload.coach,
             team: payload.team,
             opponent: payload.opponent,
+            competition: payload.competition ?? "",
             match_date: payload.match_date,
             protect_goal: payload.protect_goal,
             protect_space: payload.protect_space,
