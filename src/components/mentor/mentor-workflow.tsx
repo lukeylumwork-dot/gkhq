@@ -323,24 +323,35 @@ function InteractionForm({
     );
   }
 
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!canSubmit) return;
-    insertMentorInteractionRow({
-      player_id: gkId,
-      mentor_profile_id: mentorProfileId,
-      interaction_type: type,
-      occurred_at: new Date(date).toISOString(),
-      notes: summary.trim(),
-      outcome,
-      follow_up: followUpRequired ? nextAction.trim() : "",
-      wellbeing_flag: wellbeing,
-      follow_up_required: followUpRequired,
-      next_action: followUpRequired ? nextAction.trim() : undefined,
-      transcript_source: transcriptSource,
-    });
-    setSubmitted({ playerId: gkId });
-    setDone(true);
+    try {
+      insertMentorInteractionRow({
+        player_id: gkId,
+        mentor_profile_id: mentorProfileId,
+        interaction_type: type,
+        occurred_at: new Date(date).toISOString(),
+        notes: summary.trim(),
+        outcome,
+        follow_up: followUpRequired ? nextAction.trim() : "",
+        wellbeing_flag: wellbeing,
+        follow_up_required: followUpRequired,
+        next_action: followUpRequired ? nextAction.trim() : undefined,
+        transcript_source: transcriptSource,
+      });
+      setSubmitError(null);
+      setSubmitted({ playerId: gkId });
+      setDone(true);
+    } catch (err) {
+      if (err instanceof InvalidInteractionTypeError) {
+        setSubmitError(err.message);
+        return;
+      }
+      throw err;
+    }
   };
 
   return (
