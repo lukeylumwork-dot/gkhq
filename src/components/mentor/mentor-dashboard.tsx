@@ -1,7 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Link } from "@tanstack/react-router";
-import { ArrowUpRight, CalendarClock } from "lucide-react";
+import { useState } from "react";
+import { ArrowUpRight, CalendarClock, ChevronDown, ChevronRight, FileText, Video, AlertTriangle } from "lucide-react";
 import { Card, StatCard, SectionTitle, Avatar, TierBadge, TierLevelBadge, Pill } from "@/components/primitives";
 import { getMentorDashboardStats } from "@/lib/mentor-dashboard.functions";
 import type { Tier } from "@/lib/mock-data";
@@ -47,8 +48,10 @@ export function MentorDashboard({ user }: Props) {
 
   const firstName = user.name.split(" ")[0];
   const upcoming = data?.upcomingList ?? [];
+  const outstanding = data?.outstandingItems ?? [];
   const updatedAt = data?.lastUpdatedAt ? formatRelativeTime(data.lastUpdatedAt) : undefined;
   const period = "Last 14 days";
+  const [showOutstanding, setShowOutstanding] = useState(false);
 
   return (
     <div className="space-y-6">
@@ -128,6 +131,84 @@ export function MentorDashboard({ user }: Props) {
           />
         </Link>
       </div>
+
+      <Card className="p-4">
+        <button
+          onClick={() => setShowOutstanding((v) => !v)}
+          className="w-full flex items-center justify-between gap-3 text-left"
+          aria-expanded={showOutstanding}
+        >
+          <div className="flex items-center gap-2">
+            {showOutstanding ? <ChevronDown className="size-4 text-muted-foreground" /> : <ChevronRight className="size-4 text-muted-foreground" />}
+            <h2 className="text-sm font-semibold tracking-tight uppercase text-muted-foreground">
+              Outstanding Actions Breakdown
+            </h2>
+            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium border bg-destructive/15 text-destructive border-destructive/40 tabular-nums font-mono">
+              {outstanding.length}
+            </span>
+          </div>
+          <span className="text-[11px] uppercase tracking-wider text-muted-foreground">
+            {showOutstanding ? "Hide" : "Show"}
+          </span>
+        </button>
+
+        {showOutstanding && (
+          outstanding.length === 0 ? (
+            <div className="text-xs text-muted-foreground py-6 text-center">
+              All caught up — nothing overdue.
+            </div>
+          ) : (
+            <div className="mt-3 divide-y divide-border">
+              {outstanding.map((item) => {
+                const isReport = item.kind === "missing_report";
+                const Icon = isReport ? FileText : Video;
+                const toneClass = isReport
+                  ? "bg-destructive/15 text-destructive border-destructive/30"
+                  : "bg-warning/15 text-warning border-warning/30";
+                const actionHref = isReport ? "/reports" : "/media";
+                return (
+                  <div key={item.id} className="flex items-center gap-3 py-2.5">
+                    <Avatar initials={item.gkInitials ?? "—"} />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium border ${toneClass}`}>
+                          <Icon className="size-3" />
+                          {isReport ? "Missing report" : "Missing clip"}
+                        </span>
+                        <span className="font-medium text-sm truncate">{item.gkName ?? "Unassigned"}</span>
+                        {item.gkStatus && <TierBadge tier={item.gkStatus as Tier} />}
+                        {item.gkTierLevel && <TierLevelBadge level={item.gkTierLevel} />}
+                        {item.daysOverdue > 0 && (
+                          <Pill tone="destructive">
+                            <AlertTriangle className="size-3 mr-0.5" />
+                            {item.daysOverdue}d overdue
+                          </Pill>
+                        )}
+                      </div>
+                      <div className="text-xs text-muted-foreground truncate mt-0.5">
+                        {item.label}
+                        {item.gkClub ? ` · ${item.gkClub}` : ""}
+                      </div>
+                      <div className="text-[10px] text-muted-foreground/80 mt-0.5 font-mono tabular-nums">
+                        Observed {formatEventDateTime(item.observationDate)} · Due {formatEventDateTime(item.dueDate)} · Actionable by {item.actionableBy}
+                      </div>
+                    </div>
+                    <Link
+                      to={actionHref}
+                      className="shrink-0 text-xs px-2.5 py-1.5 rounded-md border border-border hover:bg-accent/40 text-primary inline-flex items-center gap-1"
+                    >
+                      {isReport ? "Submit report" : "Upload clip"}
+                      <ArrowUpRight className="size-3" />
+                    </Link>
+                  </div>
+                );
+              })}
+            </div>
+          )
+        )}
+      </Card>
+
+
 
       <Card className="p-4">
         <SectionTitle
