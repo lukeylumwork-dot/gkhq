@@ -74,35 +74,60 @@ export function MentorDashboard({ user }: Props) {
       </header>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-        <StatCard
-          label="Match Reports Submitted"
-          value={data?.reportsLast14 ?? 0}
-          hint={period}
-          accent="primary"
-          updatedAt={updatedAt}
-        />
-        <StatCard
-          label="Interactions Logged"
-          value={data?.interactionsLast14 ?? 0}
-          hint={period}
-          accent="info"
-          updatedAt={updatedAt}
-        />
-        <StatCard
-          label="Match Clips Posted"
-          value={data?.clipsLast14 ?? 0}
-          hint={period}
-          accent="primary"
-          updatedAt={updatedAt}
-        />
-        <StatCard
-          label="Outstanding Actions"
-          value={data?.outstandingActions ?? 0}
-          hint="Overdue reports & clip uploads"
-          accent="destructive"
-          emptyMessage="All caught up"
-          updatedAt={updatedAt}
-        />
+        <Link
+          to="/reports"
+          className="block rounded-lg transition-transform hover:-translate-y-0.5 hover:ring-1 hover:ring-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          aria-label="View match reports"
+        >
+          <StatCard
+            label="Match Reports Submitted"
+            value={data?.reportsLast14 ?? 0}
+            hint={period}
+            accent="primary"
+            updatedAt={updatedAt}
+          />
+        </Link>
+        <Link
+          to="/interactions"
+          className="block rounded-lg transition-transform hover:-translate-y-0.5 hover:ring-1 hover:ring-info/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-info"
+          aria-label="View interactions"
+        >
+          <StatCard
+            label="Interactions Logged"
+            value={data?.interactionsLast14 ?? 0}
+            hint={period}
+            accent="info"
+            updatedAt={updatedAt}
+          />
+        </Link>
+        <Link
+          to="/media"
+          className="block rounded-lg transition-transform hover:-translate-y-0.5 hover:ring-1 hover:ring-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          aria-label="View match clips"
+        >
+          <StatCard
+            label="Match Clips Posted"
+            value={data?.clipsLast14 ?? 0}
+            hint={period}
+            accent="primary"
+            updatedAt={updatedAt}
+          />
+        </Link>
+        <Link
+          to="/reports"
+          search={{ filter: "overdue" } as never}
+          className="block rounded-lg transition-transform hover:-translate-y-0.5 hover:ring-1 hover:ring-destructive/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive"
+          aria-label="View outstanding actions"
+        >
+          <StatCard
+            label="Outstanding Actions"
+            value={data?.outstandingActions ?? 0}
+            hint="Overdue reports & clip uploads"
+            accent="destructive"
+            emptyMessage="All caught up"
+            updatedAt={updatedAt}
+          />
+        </Link>
       </div>
 
       <Card className="p-4">
