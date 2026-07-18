@@ -70,8 +70,11 @@ function interactionGroupLabel(date: string) {
 
 const groupOrder = ["Today", "Tomorrow", "This week", "Next week", "Later"] as const;
 
+const PLANNED_TYPE_OPTIONS = ["Coffee Meeting", "Attend Live Match", "Training Ground Visit"] as const;
+
 export function MentorDashboard({ user }: Props) {
   const [rangeDays, setRangeDays] = useState(14);
+  const [filters, setFilters] = useState<string[]>([]);
   const fetchStats = useServerFn(getMentorDashboardStats);
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["mentor-dashboard-stats", rangeDays],
@@ -85,16 +88,29 @@ export function MentorDashboard({ user }: Props) {
   const period = "Last 14 days";
   const [showOutstanding, setShowOutstanding] = useState(false);
 
+  const filteredUpcoming = useMemo(() => {
+    if (filters.length === 0) return upcoming;
+    return upcoming.filter((e) => e.plannedType && filters.includes(e.plannedType));
+  }, [upcoming, filters]);
+
   const groupedUpcoming = useMemo(() => {
     const map = new Map<string, MentorUpcomingInteraction[]>();
-    for (const item of upcoming) {
+    for (const item of filteredUpcoming) {
       const label = interactionGroupLabel(item.date);
       const list = map.get(label) ?? [];
       list.push(item);
       map.set(label, list);
     }
     return map;
-  }, [upcoming]);
+  }, [filteredUpcoming]);
+
+  const toggleFilter = (type: string) => {
+    setFilters((prev) =>
+      prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type]
+    );
+  };
+
+  const clearFilters = () => setFilters([]);
 
   return (
     <div className="space-y-6">
@@ -288,7 +304,40 @@ export function MentorDashboard({ user }: Props) {
           </div>
         </div>
 
-        {upcoming.length === 0 ? (
+        <div className="flex flex-wrap items-center gap-1 mb-3">
+          <button
+            onClick={clearFilters}
+            className={cn(
+              "px-2.5 py-1 text-[11px] uppercase tracking-wider rounded-md border transition-colors",
+              filters.length === 0
+                ? "bg-primary text-primary-foreground border-primary"
+                : "bg-transparent text-muted-foreground border-border hover:border-primary/50"
+            )}
+            aria-pressed={filters.length === 0}
+          >
+            All
+          </button>
+          {PLANNED_TYPE_OPTIONS.map((type) => {
+            const active = filters.includes(type);
+            return (
+              <button
+                key={type}
+                onClick={() => toggleFilter(type)}
+                className={cn(
+                  "px-2.5 py-1 text-[11px] uppercase tracking-wider rounded-md border transition-colors",
+                  active
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-transparent text-muted-foreground border-border hover:border-primary/50"
+                )}
+                aria-pressed={active}
+              >
+                {type}
+              </button>
+            );
+          })}
+        </div>
+
+        {filteredUpcoming.length === 0 ? (
           <div className="flex flex-col items-center justify-center gap-3 py-10 text-center">
             <div className="size-10 rounded-full bg-muted grid place-items-center">
               <CalendarPlus className="size-5 text-muted-foreground" />
