@@ -31,13 +31,29 @@ const KINDS = ["all", "video", "pdf", "image", "audio"] as const;
 
 function MediaPage() {
   const { can, user } = useAuth();
+  const { from, to, uploaderName } = Route.useSearch();
   const [assets, setAssets] = useState<MediaAsset[]>([]);
   const [loading, setLoading] = useState(true);
   const [workflow, setWorkflow] = useState<WorkflowKind | null>(null);
   const [editing, setEditing] = useState<MediaAsset | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
-  const [filters, setFilters] = useState<MediaFilters>({ kind: "all" });
+  const [filters, setFilters] = useState<MediaFilters>(() => {
+    const initial: MediaFilters = { kind: "all" };
+    if (from) initial.from = from;
+    if (to) initial.to = to;
+    if (uploaderName) initial.uploaderName = uploaderName;
+    return initial;
+  });
   const [thumbUrls, setThumbUrls] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    setFilters((prev) => ({
+      ...prev,
+      from: from || undefined,
+      to: to || undefined,
+      uploaderName: uploaderName || undefined,
+    }));
+  }, [from, to, uploaderName]);
 
   const load = useCallback(async () => {
     setLoading(true);
