@@ -158,13 +158,12 @@ export const submitMatchReport = createServerFn({ method: "POST" })
       .maybeSingle<{ name: string | null; email: string | null }>();
     const callerName = (profile?.name || profile?.email || "").trim();
 
-    // Non-privileged roles cannot submit on another coach's behalf.
-    if (
-      !CAN_OVERRIDE_COACH.includes(effectiveRole) &&
-      payload.coach.trim().toLowerCase() !== callerName.toLowerCase()
-    ) {
-      throw new Error("Only managers/admins can submit on another coach's behalf.");
-    }
+    // Coach is a read-only, server-derived field. Non-privileged roles get
+    // their canonical profile name authoritatively; privileged roles may
+    // submit on another coach's behalf.
+    const resolvedCoach = CAN_OVERRIDE_COACH.includes(effectiveRole)
+      ? (payload.coach?.trim() || callerName)
+      : callerName;
 
     const average = averageOfScores(payload);
     const { appendRow } = await import("./sheets.server");
@@ -172,7 +171,7 @@ export const submitMatchReport = createServerFn({ method: "POST" })
     // Column order MUST match COLUMN_INDEX / SHEET_HEADERS.
     const row = new Array<string | number>(15).fill("");
     row[COLUMN_INDEX.goalkeeper] = payload.goalkeeper;
-    row[COLUMN_INDEX.coach] = payload.coach;
+    row[COLUMN_INDEX.coach] = resolvedCoach;
     row[COLUMN_INDEX.team] = payload.team;
     row[COLUMN_INDEX.opponent] = payload.opponent;
     row[COLUMN_INDEX.match_date] = formatSheetDate(payload.match_date);
@@ -198,7 +197,7 @@ export const submitMatchReport = createServerFn({ method: "POST" })
             report_id,
             row_index: rowIndex > 0 ? rowIndex : null,
             goalkeeper: payload.goalkeeper,
-            coach: payload.coach,
+            coach: resolvedCoach,
             team: payload.team,
             opponent: payload.opponent,
             competition: payload.competition ?? "",
