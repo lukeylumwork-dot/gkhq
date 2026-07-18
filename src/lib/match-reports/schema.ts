@@ -179,6 +179,7 @@ export function rowToMatchReport(row: string[], rowIndex: number): MatchReportRo
     coach: (row[COLUMN_INDEX.coach] ?? "").trim(),
     team: (row[COLUMN_INDEX.team] ?? "").trim() || null,
     opponent,
+    competition: (row[COLUMN_INDEX.competition] ?? "").toString().trim() || null,
     match_date,
     scores: {
       protect_goal: num(COLUMN_INDEX.protect_goal),
