@@ -105,6 +105,7 @@ function MediaPage() {
     (filters.kind && filters.kind !== "all" ? 1 : 0) +
     (filters.gkId ? 1 : 0) +
     (filters.uploaderId ? 1 : 0) +
+    (filters.uploaderName ? 1 : 0) +
     (filters.from ? 1 : 0) +
     (filters.to ? 1 : 0) +
     (filters.tags?.length ? 1 : 0) +
