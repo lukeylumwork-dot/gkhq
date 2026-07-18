@@ -65,7 +65,6 @@ const MENTOR: Permission[] = [
   "interactions.view", "interactions.log",
   "reports.view", "reports.submit",
   "media.view", "media.upload", "media.edit",
-  "intelligence.view",
   "calendar.view",
 ];
 
