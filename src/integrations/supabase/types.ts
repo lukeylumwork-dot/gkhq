@@ -14,6 +14,51 @@ export type Database = {
   }
   public: {
     Tables: {
+      dashboard_click_events: {
+        Row: {
+          created_at: string
+          destination: string
+          effective_role: string | null
+          id: string
+          mentor_name: string | null
+          mentor_profile_id: string | null
+          metadata: Json
+          period_days: number | null
+          period_from: string | null
+          period_to: string | null
+          source: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          destination: string
+          effective_role?: string | null
+          id?: string
+          mentor_name?: string | null
+          mentor_profile_id?: string | null
+          metadata?: Json
+          period_days?: number | null
+          period_from?: string | null
+          period_to?: string | null
+          source: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          destination?: string
+          effective_role?: string | null
+          id?: string
+          mentor_name?: string | null
+          mentor_profile_id?: string | null
+          metadata?: Json
+          period_days?: number | null
+          period_from?: string | null
+          period_to?: string | null
+          source?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       match_reports_cache: {
         Row: {
           average: number | null

@@ -10,6 +10,7 @@ import type { MentorUpcomingInteraction } from "@/lib/mentor-dashboard.functions
 import { mentors } from "@/lib/mock-data";
 import type { Tier } from "@/lib/mock-data";
 import type { SessionUser } from "@/lib/auth";
+import { logDashboardClick } from "@/lib/analytics.functions";
 
 function lastNDaysSearch(days: number) {
   const to = new Date();
@@ -135,6 +136,21 @@ export function MentorDashboard({ user }: Props) {
 
   const clearFilters = () => setFilters([]);
 
+  const trackClick = (source: string, destination: string) => {
+    void logDashboardClick({
+      data: {
+        source,
+        destination,
+        periodDays: rangeDays,
+        periodFrom: periodSearch.from,
+        periodTo: periodSearch.to,
+        mentorProfileId: effectiveMentorId || undefined,
+        mentorName: mentorName || undefined,
+        effectiveRole: user.role,
+      },
+    }).catch(() => {});
+  };
+
   return (
     <div className="space-y-6">
       <header>
@@ -162,6 +178,7 @@ export function MentorDashboard({ user }: Props) {
         <Link
           to="/reports"
           search={reportsSearch}
+          onClick={() => trackClick("reports-submitted", "/reports")}
           className="block rounded-lg transition-transform hover:-translate-y-0.5 hover:ring-1 hover:ring-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           aria-label="View match reports"
         >
@@ -176,6 +193,7 @@ export function MentorDashboard({ user }: Props) {
         <Link
           to="/interactions"
           search={interactionsSearch}
+          onClick={() => trackClick("interactions-logged", "/interactions")}
           className="block rounded-lg transition-transform hover:-translate-y-0.5 hover:ring-1 hover:ring-info/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-info"
           aria-label="View interactions"
         >
@@ -190,6 +208,7 @@ export function MentorDashboard({ user }: Props) {
         <Link
           to="/media"
           search={mediaSearch}
+          onClick={() => trackClick("clips-posted", "/media")}
           className="block rounded-lg transition-transform hover:-translate-y-0.5 hover:ring-1 hover:ring-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           aria-label="View match clips"
         >
@@ -204,6 +223,7 @@ export function MentorDashboard({ user }: Props) {
         <Link
           to="/reports"
           search={outstandingSearch}
+          onClick={() => trackClick("outstanding-actions", "/reports")}
           className="block rounded-lg transition-transform hover:-translate-y-0.5 hover:ring-1 hover:ring-destructive/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive"
           aria-label="View outstanding actions"
         >
@@ -285,6 +305,7 @@ export function MentorDashboard({ user }: Props) {
                     <Link
                       to={actionHref}
                       search={actionSearch}
+                      onClick={() => trackClick(isReport ? "outstanding-report" : "outstanding-clip", actionHref)}
                       className="shrink-0 text-xs px-2.5 py-1.5 rounded-md border border-border hover:bg-accent/40 text-primary inline-flex items-center gap-1"
                     >
                       {isReport ? "Submit report" : "Upload clip"}
