@@ -7,12 +7,14 @@ import { interactions, getGk, getMentor, formatDate, formatRelative } from "@/li
 import { useEffect, useMemo, useState } from "react";
 import { X, MessageSquarePlus, Filter } from "lucide-react";
 import { withPermission } from "@/components/require-permission";
+import { getNavSource } from "@/lib/nav-source";
 
 const interactionsSearchSchema = z.object({
   from: fallback(z.string(), "").default(""),
   to: fallback(z.string(), "").default(""),
   mentorId: fallback(z.string(), "").default(""),
   type: fallback(z.string(), "").default(""),
+  source: fallback(z.string(), "").default(""),
 });
 
 export const Route = createFileRoute("/interactions")({
