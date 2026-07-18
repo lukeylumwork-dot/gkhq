@@ -549,7 +549,7 @@ function ReportForm({ onDone }: { onDone: () => void }) {
   if (done) {
     return (
       <Submitted
-        message={`Submission sent to the RPM Match Reports Google Sheet · Average ${done.average.toFixed(1)}. This connection is transitional — successful persistence has not yet been verified in this environment.`}
+        message={`Match report submitted to the RPM Match Reports Google Sheet · Average ${done.average.toFixed(1)}.`}
         onDone={onDone}
       />
     );
