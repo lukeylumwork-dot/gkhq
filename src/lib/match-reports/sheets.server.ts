@@ -68,3 +68,62 @@ export async function appendRow(values: (string | number)[]): Promise<number> {
   const m = updated.match(/![A-Z]+(\d+):[A-Z]+\d+$/);
   return m ? Number(m[1]) : -1;
 }
+
+/** Look up the numeric sheetId (gid) for SHEET_TAB. Cached in-memory. */
+let cachedSheetGid: number | null = null;
+export async function getSheetGid(): Promise<number> {
+  if (cachedSheetGid != null) return cachedSheetGid;
+  const res = await gatewayFetch(
+    `/spreadsheets/${SHEET_ID}?fields=sheets(properties(sheetId,title))`,
+  );
+  if (!res.ok) {
+    const body = await res.text();
+    console.error(`[sheets] getSheetGid failed [${res.status}]: ${body}`);
+    throw new Error(`Google Sheets metadata read failed [${res.status}]`);
+  }
+  const data = (await res.json()) as {
+    sheets?: { properties?: { sheetId?: number; title?: string } }[];
+  };
+  const match = (data.sheets ?? []).find(
+    (s) => s.properties?.title === SHEET_TAB,
+  );
+  if (!match?.properties || match.properties.sheetId == null) {
+    throw new Error(`Sheet tab "${SHEET_TAB}" not found in spreadsheet.`);
+  }
+  cachedSheetGid = match.properties.sheetId;
+  return cachedSheetGid;
+}
+
+/** Delete a single 1-based row from the sheet. */
+export async function deleteRow(rowIndex: number): Promise<void> {
+  if (!Number.isInteger(rowIndex) || rowIndex < 2) {
+    throw new Error(`Refusing to delete invalid row index ${rowIndex}.`);
+  }
+  const sheetId = await getSheetGid();
+  const res = await gatewayFetch(
+    `/spreadsheets/${SHEET_ID}:batchUpdate`,
+    {
+      method: "POST",
+      body: JSON.stringify({
+        requests: [
+          {
+            deleteDimension: {
+              range: {
+                sheetId,
+                dimension: "ROWS",
+                startIndex: rowIndex - 1, // 0-based, inclusive
+                endIndex: rowIndex, // exclusive
+              },
+            },
+          },
+        ],
+      }),
+    },
+  );
+  if (!res.ok) {
+    const body = await res.text();
+    console.error(`[sheets] deleteRow failed [${res.status}]: ${body}`);
+    throw new Error(`Google Sheets delete failed [${res.status}]`);
+  }
+}
+

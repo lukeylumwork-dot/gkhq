@@ -47,7 +47,7 @@ export const listMatchReports = createServerFn({ method: "GET" })
     return a.match_date < b.match_date ? 1 : a.match_date > b.match_date ? -1 : 0;
   });
 
-  // Best-effort cache upsert. Failures don't block the read.
+  // Best-effort cache reconciliation. Failures don't block the read.
   try {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     if (parsed.length) {
@@ -75,12 +75,27 @@ export const listMatchReports = createServerFn({ method: "GET" })
         { onConflict: "report_id" },
       );
     }
+    // Prune cache rows that no longer exist in the sheet.
+    const liveIds = new Set(parsed.map((r) => r.report_id));
+    const { data: cached } = await supabaseAdmin
+      .from("match_reports_cache")
+      .select("report_id");
+    const stale = (cached ?? [])
+      .map((r) => r.report_id as string)
+      .filter((id) => !liveIds.has(id));
+    if (stale.length) {
+      await supabaseAdmin
+        .from("match_reports_cache")
+        .delete()
+        .in("report_id", stale);
+    }
   } catch (e) {
-    console.error("[match-reports] cache upsert skipped:", e);
+    console.error("[match-reports] cache reconcile skipped:", e);
   }
 
   return { reports: parsed };
 });
+
 
 // ---------------------------------------------------------------------------
 // getMatchReport
@@ -208,4 +223,71 @@ export const submitMatchReport = createServerFn({ method: "POST" })
 
     return { report_id, row_index: rowIndex, average };
   });
+
+// ---------------------------------------------------------------------------
+// deleteMatchReport — removes the sheet row AND its cache record atomically.
+// ---------------------------------------------------------------------------
+
+export const deleteMatchReport = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) =>
+    z.object({ reportId: z.string().min(1) }).parse(data),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+
+    // Only privileged roles may delete reports.
+    const { data: roleRows, error: roleErr } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId);
+    if (roleErr) throw new Error("Unable to verify caller role.");
+    const roles = (roleRows ?? []).map((r) => r.role as string);
+    const CAN_DELETE = ["super_admin", "admin", "mentor_manager"];
+    if (!roles.some((r) => CAN_DELETE.includes(r))) {
+      throw new Error("You don't have permission to delete reports.");
+    }
+
+    // Locate the row in the sheet (source of truth).
+    const { readAllRows, deleteRow } = await import("./sheets.server");
+    const { rows, firstDataRow } = await readAllRows();
+    let matchedRowIndex = -1;
+    for (let i = 0; i < rows.length; i++) {
+      const r = rowToMatchReport(rows[i], firstDataRow + i);
+      if (r && r.report_id === data.reportId) {
+        matchedRowIndex = firstDataRow + i;
+        break;
+      }
+    }
+    if (matchedRowIndex < 0) {
+      // Sheet row already gone — still purge any stale cache entry.
+      try {
+        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+        await supabaseAdmin
+          .from("match_reports_cache")
+          .delete()
+          .eq("report_id", data.reportId);
+      } catch (e) {
+        console.error("[match-reports] stale cache delete failed:", e);
+      }
+      return { deleted: false, reason: "not_found" as const };
+    }
+
+    // Delete sheet row first — if it fails we leave the cache alone.
+    await deleteRow(matchedRowIndex);
+
+    // Then remove the cache record so /reports reflects the deletion.
+    try {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      await supabaseAdmin
+        .from("match_reports_cache")
+        .delete()
+        .eq("report_id", data.reportId);
+    } catch (e) {
+      console.error("[match-reports] cache delete after sheet delete failed:", e);
+    }
+
+    return { deleted: true, row_index: matchedRowIndex };
+  });
+
 
