@@ -39,7 +39,8 @@ function isKind(v: string): v is MediaKind | "all" {
 
 function MediaPage() {
   const { can, user } = useAuth();
-  const { from, to, uploaderName, kind: kindParam } = Route.useSearch();
+  const { from, to, uploaderName, kind: kindParam, source } = Route.useSearch();
+  const navSource = getNavSource(source);
   const [assets, setAssets] = useState<MediaAsset[]>([]);
   const [loading, setLoading] = useState(true);
   const [workflow, setWorkflow] = useState<WorkflowKind | null>(null);
