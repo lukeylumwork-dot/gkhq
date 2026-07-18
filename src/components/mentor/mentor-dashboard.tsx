@@ -7,8 +7,18 @@ import { cn } from "@/lib/utils";
 import { Card, StatCard, SectionTitle, Avatar, TierBadge, TierLevelBadge, Pill, TierLegend } from "@/components/primitives";
 import { getMentorDashboardStats } from "@/lib/mentor-dashboard.functions";
 import type { MentorUpcomingInteraction } from "@/lib/mentor-dashboard.functions";
+import { mentors } from "@/lib/mock-data";
 import type { Tier } from "@/lib/mock-data";
 import type { SessionUser } from "@/lib/auth";
+
+function lastNDaysSearch(days: number) {
+  const to = new Date();
+  to.setHours(23, 59, 59, 999);
+  const from = new Date();
+  from.setDate(from.getDate() - days);
+  from.setHours(0, 0, 0, 0);
+  return { from: from.toISOString(), to: to.toISOString() };
+}
 
 interface Props {
   user: SessionUser;
