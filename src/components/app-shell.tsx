@@ -15,7 +15,7 @@ const NAV: NavItem[] = [
   { to: "/mentors", label: "Mentors", icon: UserCog, perm: "mentors.view" },
   { to: "/interactions", label: "Interactions Log", icon: MessageSquare, perm: "interactions.view" },
   { to: "/reports", label: "Match Reports", icon: FileText, perm: "reports.view" },
-  { to: "/intelligence", label: "Intelligence", icon: Database, perm: "intelligence.view" },
+  
   { to: "/media", label: "Media Library", icon: FolderOpen, perm: "media.view" },
   { to: "/audit", label: "Audit Log", icon: History, perm: "audit.view" },
   { to: "/alerts", label: "Notification Centre", icon: BellRing, perm: "alerts.view" },
