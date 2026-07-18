@@ -50,7 +50,7 @@ export const TIER_DEFINITIONS: TierDefinition[] = [
 export type InteractionType =
   | "Live Match Observation"
   | "Training Ground Visit"
-  | "Face to Face"
+  | "Coffee Catch Up"
   | "Phone Call";
 
 
@@ -421,7 +421,7 @@ const NOTES = [
 ];
 const OUTCOMES = ["On track", "Above expectation", "Below expectation", "Needs follow-up", "Action plan agreed"];
 const FOLLOWUPS = ["Schedule video review", "Send technical drill pack", "Set up call with coach", "Plan club visit", "No action required"];
-const ITYPES: InteractionType[] = ["Live Match Observation", "Training Ground Visit", "Face to Face", "Phone Call"];
+const ITYPES: InteractionType[] = ["Live Match Observation", "Training Ground Visit", "Coffee Catch Up", "Phone Call"];
 
 export const interactions: Interaction[] = goalkeepers.flatMap((gk) => {
   const count = gk.name === "James Beadle" || gk.name === "Corey Addai" ? between(10, 14) : between(3, 7);

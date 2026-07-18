@@ -17,7 +17,7 @@ export const Route = createFileRoute("/goalkeepers/$gkId")({
 
 const TYPE_ICON: Record<string, typeof Video> = {
   "Live Match Observation": Eye, "Training Ground Visit": UsersIcon,
-  "Face to Face": UsersIcon, "Phone Call": Phone,
+  "Coffee Catch Up": UsersIcon, "Phone Call": Phone,
 };
 
 function GkDetail() {

@@ -177,7 +177,7 @@ function InteractionForm({ onDone }: { onDone: () => void }) {
     <form onSubmit={(e) => { e.preventDefault(); setDone(true); }} className="space-y-4">
       <div className="grid grid-cols-2 gap-3">
         <Field label="Goalkeeper"><select className={selectCls} required value={gkId} onChange={(e) => setGkId(e.target.value)}><option value="" disabled>Select…</option>{goalkeepers.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}</select></Field>
-        <Field label="Interaction Type"><select className={selectCls} required>{["Live Match Observation", "Training Ground Visit", "Face to Face", "Phone Call"].map((t) => <option key={t}>{t}</option>)}</select></Field>
+        <Field label="Interaction Type"><select className={selectCls} required>{["Live Match Observation", "Training Ground Visit", "Coffee Catch Up", "Phone Call"].map((t) => <option key={t}>{t}</option>)}</select></Field>
         <Field label="Date"><input type="date" className={inputCls} defaultValue={new Date().toISOString().slice(0, 10)} required /></Field>
         <Field label="Outcome"><select className={selectCls}>{["On track", "Above expectation", "Below expectation", "Needs follow-up", "Action plan agreed"].map((t) => <option key={t}>{t}</option>)}</select></Field>
       </div>
