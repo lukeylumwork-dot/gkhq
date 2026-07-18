@@ -48,9 +48,8 @@ const GROUPS: Group[] = [
     ],
   },
   {
-    title: "Intelligence & alerts",
+    title: "Alerts & calendar",
     items: [
-      { perm: "intelligence.view", label: "View intelligence", description: "Access the intelligence workspace." },
       { perm: "alerts.view", label: "View alerts", description: "Read the notification centre." },
       { perm: "calendar.view", label: "View calendar", description: "See scheduled sessions and events." },
     ],
