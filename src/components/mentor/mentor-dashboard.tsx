@@ -1,7 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Link } from "@tanstack/react-router";
-import { ArrowUpRight, CalendarClock } from "lucide-react";
+import { useState } from "react";
+import { ArrowUpRight, CalendarClock, ChevronDown, ChevronRight, FileText, Video, AlertTriangle } from "lucide-react";
 import { Card, StatCard, SectionTitle, Avatar, TierBadge, TierLevelBadge, Pill } from "@/components/primitives";
 import { getMentorDashboardStats } from "@/lib/mentor-dashboard.functions";
 import type { Tier } from "@/lib/mock-data";
