@@ -253,8 +253,8 @@ export function MentorDashboard({ user }: Props) {
                   : "bg-warning/15 text-warning border-warning/30";
                 const actionHref = isReport ? "/reports" : "/media";
                 const actionSearch = isReport
-                  ? { from: "", to: "", coach: mentorName ?? "", mentorProfileId: effectiveMentorId }
-                  : { from: "", to: "", uploaderName: mentorName ?? "", mentorProfileId: effectiveMentorId, kind: "video" };
+                  ? { from: "", to: "", coach: mentorName ?? "", mentorProfileId: effectiveMentorId, source: "outstanding-report" }
+                  : { from: "", to: "", uploaderName: mentorName ?? "", mentorProfileId: effectiveMentorId, kind: "video", source: "outstanding-clip" };
                 return (
                   <div key={item.id} className="flex items-center gap-3 py-2.5">
                     <Avatar initials={item.gkInitials ?? "—"} />
