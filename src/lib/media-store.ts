@@ -250,6 +250,7 @@ export interface MediaFilters {
   kind?: MediaKind | "all";
   gkId?: string;
   uploaderId?: string;
+  uploaderName?: string;
   from?: string; // ISO date
   to?: string;   // ISO date
   tags?: string[];
@@ -261,6 +262,7 @@ export async function listMedia(filters: MediaFilters = {}): Promise<MediaAsset[
   if (filters.kind && filters.kind !== "all") q = q.eq("media_type", filters.kind);
   if (filters.gkId) q = q.eq("gk_id", filters.gkId);
   if (filters.uploaderId) q = q.eq("uploaded_by_id", filters.uploaderId);
+  if (filters.uploaderName) q = q.ilike("uploaded_by_name", `%${filters.uploaderName}%`);
   if (filters.from) q = q.gte("created_at", filters.from);
   if (filters.to) q = q.lte("created_at", filters.to);
   if (filters.tags && filters.tags.length) q = q.overlaps("rating_tags", filters.tags);

@@ -1,17 +1,28 @@
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
+import { zodValidator, fallback } from "@tanstack/zod-adapter";
+import { z } from "zod";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { PageHeader, Card, Pill, SectionTitle } from "@/components/primitives";
 import { DataSourceBanner } from "@/lib/data-classification";
 import { useEffect, useMemo, useState } from "react";
-import { FileText, ChevronRight, RefreshCw } from "lucide-react";
+import { FileText, ChevronRight, RefreshCw, X } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { WorkflowDialog, type WorkflowKind } from "@/components/workflows";
 import { withPermission } from "@/components/require-permission";
 import { listMatchReports } from "@/lib/match-reports/reports.functions";
 import type { MatchReportRow } from "@/lib/match-reports/schema";
 
-export const Route = createFileRoute("/reports")({ component: withPermission(ReportsPage, "reports.view") });
+const reportsSearchSchema = z.object({
+  from: fallback(z.string(), "").default(""),
+  to: fallback(z.string(), "").default(""),
+  coach: fallback(z.string(), "").default(""),
+});
+
+export const Route = createFileRoute("/reports")({
+  validateSearch: zodValidator(reportsSearchSchema),
+  component: withPermission(ReportsPage, "reports.view"),
+});
 
 function formatDate(iso: string | null) {
   if (!iso) return "—";
@@ -21,8 +32,9 @@ function formatDate(iso: string | null) {
 
 function ReportsPage() {
   const { can } = useAuth();
+  const { from, to, coach } = Route.useSearch();
   const [workflow, setWorkflow] = useState<WorkflowKind | null>(null);
-  const [coachFilter, setCoachFilter] = useState<string>("All");
+  const [coachFilter, setCoachFilter] = useState<string>(coach || "All");
   const router = useRouter();
   const listFn = useServerFn(listMatchReports);
 
@@ -40,15 +52,32 @@ function ReportsPage() {
     return () => window.removeEventListener("rpm:report-submitted", h);
   }, [refetch, router]);
 
+  useEffect(() => {
+    if (coach) setCoachFilter(coach);
+  }, [coach]);
+
   const coaches = useMemo(() => {
     const s = new Set<string>();
     reports.forEach((r) => r.coach && s.add(r.coach));
     return ["All", ...Array.from(s).sort()];
   }, [reports]);
 
-  const filtered = coachFilter === "All"
-    ? reports
-    : reports.filter((r) => r.coach === coachFilter);
+  const filtered = useMemo(() => {
+    let list = coachFilter === "All" ? reports : reports.filter((r) => r.coach === coachFilter);
+    if (from && to) {
+      const start = new Date(from).getTime();
+      const end = new Date(to).getTime();
+      list = list.filter((r) => {
+        if (!r.match_date) return false;
+        const t = new Date(r.match_date).getTime();
+        return t >= start && t <= end;
+      });
+    }
+    return list;
+  }, [reports, coachFilter, from, to]);
+
+  const hasFilters = Boolean(coach) || (Boolean(from) && Boolean(to));
+  const clearSearch = { from: "", to: "", coach: "" };
 
   return (
     <div className="space-y-5">
@@ -99,6 +128,17 @@ function ReportsPage() {
           </button>
         ))}
       </div>
+
+      {hasFilters && (
+        <div className="flex flex-wrap items-center gap-2 text-xs">
+          <span className="text-muted-foreground uppercase tracking-wider">Scoped to:</span>
+          {coach && <Pill tone="muted">{coach}</Pill>}
+          {from && to && <Pill tone="muted">{new Date(from).toLocaleDateString("en-GB", { day: "numeric", month: "short" })} – {new Date(to).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</Pill>}
+          <Link to="/reports" search={clearSearch} className="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground ml-2">
+            <X className="size-3" /> Clear
+          </Link>
+        </div>
+      )}
 
       <Card>
         <div className="overflow-x-auto">

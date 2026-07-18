@@ -1,4 +1,6 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { zodValidator, fallback } from "@tanstack/zod-adapter";
+import { z } from "zod";
 import { PageHeader, Card, Pill } from "@/components/primitives";
 import { DataSourceBanner } from "@/lib/data-classification";
 import { goalkeepers, getGk, formatDate } from "@/lib/mock-data";
@@ -13,20 +15,45 @@ import {
 } from "@/lib/media-store";
 import { withPermission } from "@/components/require-permission";
 
-export const Route = createFileRoute("/media")({ component: withPermission(MediaPage, "media.view") });
+const mediaSearchSchema = z.object({
+  from: fallback(z.string(), "").default(""),
+  to: fallback(z.string(), "").default(""),
+  uploaderName: fallback(z.string(), "").default(""),
+});
+
+export const Route = createFileRoute("/media")({
+  validateSearch: zodValidator(mediaSearchSchema),
+  component: withPermission(MediaPage, "media.view"),
+});
 
 const KIND_ICON: Record<MediaKind, typeof Video> = { video: Video, pdf: FileText, image: ImageIcon, audio: Mic };
 const KINDS = ["all", "video", "pdf", "image", "audio"] as const;
 
 function MediaPage() {
   const { can, user } = useAuth();
+  const { from, to, uploaderName } = Route.useSearch();
   const [assets, setAssets] = useState<MediaAsset[]>([]);
   const [loading, setLoading] = useState(true);
   const [workflow, setWorkflow] = useState<WorkflowKind | null>(null);
   const [editing, setEditing] = useState<MediaAsset | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
-  const [filters, setFilters] = useState<MediaFilters>({ kind: "all" });
+  const [filters, setFilters] = useState<MediaFilters>(() => {
+    const initial: MediaFilters = { kind: "all" };
+    if (from) initial.from = from;
+    if (to) initial.to = to;
+    if (uploaderName) initial.uploaderName = uploaderName;
+    return initial;
+  });
   const [thumbUrls, setThumbUrls] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    setFilters((prev) => ({
+      ...prev,
+      from: from || undefined,
+      to: to || undefined,
+      uploaderName: uploaderName || undefined,
+    }));
+  }, [from, to, uploaderName]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -78,6 +105,7 @@ function MediaPage() {
     (filters.kind && filters.kind !== "all" ? 1 : 0) +
     (filters.gkId ? 1 : 0) +
     (filters.uploaderId ? 1 : 0) +
+    (filters.uploaderName ? 1 : 0) +
     (filters.from ? 1 : 0) +
     (filters.to ? 1 : 0) +
     (filters.tags?.length ? 1 : 0) +
@@ -123,7 +151,7 @@ function MediaPage() {
             </button>
           )}
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-2">
           <div className="lg:col-span-2">
             <input
               value={filters.search ?? ""}
@@ -142,6 +170,12 @@ function MediaPage() {
           <select value={filters.uploaderId ?? ""} onChange={(e) => setFilters((f) => ({ ...f, uploaderId: e.target.value || undefined }))} className="h-9 px-2 rounded-md bg-input/60 border border-border text-sm">
             <option value="">All uploaders</option>
             {uploaders.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
+          </select>
+          <select value={filters.uploaderName ?? ""} onChange={(e) => setFilters((f) => ({ ...f, uploaderName: e.target.value || undefined }))} className="h-9 px-2 rounded-md bg-input/60 border border-border text-sm">
+            <option value="">All uploader names</option>
+            {Array.from(new Set([...DEMO_USERS.map((u) => u.name), ...uploaders.map((u) => u.name)])).map((name) => (
+              <option key={name} value={name}>{name}</option>
+            ))}
           </select>
           <div className="flex gap-1">
             <input type="date" value={filters.from?.slice(0, 10) ?? ""} onChange={(e) => setFilters((f) => ({ ...f, from: e.target.value ? new Date(e.target.value).toISOString() : undefined }))} className="w-full h-9 px-2 rounded-md bg-input/60 border border-border text-xs" />

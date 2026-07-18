@@ -7,8 +7,18 @@ import { cn } from "@/lib/utils";
 import { Card, StatCard, SectionTitle, Avatar, TierBadge, TierLevelBadge, Pill, TierLegend } from "@/components/primitives";
 import { getMentorDashboardStats } from "@/lib/mentor-dashboard.functions";
 import type { MentorUpcomingInteraction } from "@/lib/mentor-dashboard.functions";
+import { mentors } from "@/lib/mock-data";
 import type { Tier } from "@/lib/mock-data";
 import type { SessionUser } from "@/lib/auth";
+
+function lastNDaysSearch(days: number) {
+  const to = new Date();
+  to.setHours(23, 59, 59, 999);
+  const from = new Date();
+  from.setDate(from.getDate() - days);
+  from.setHours(0, 0, 0, 0);
+  return { from: from.toISOString(), to: to.toISOString() };
+}
 
 interface Props {
   user: SessionUser;
@@ -85,7 +95,7 @@ export function MentorDashboard({ user }: Props) {
   const upcoming = data?.upcomingList ?? [];
   const outstanding = data?.outstandingItems ?? [];
   const updatedAt = data?.lastUpdatedAt ? formatRelativeTime(data.lastUpdatedAt) : undefined;
-  const period = "Last 14 days";
+  const period = `Last ${rangeDays} days`;
   const [showOutstanding, setShowOutstanding] = useState(false);
 
   const filteredUpcoming = useMemo(() => {
@@ -103,6 +113,18 @@ export function MentorDashboard({ user }: Props) {
     }
     return map;
   }, [filteredUpcoming]);
+
+  const mentorName = useMemo(() => {
+    const id = data?.mentorProfileId ?? user.mentorId;
+    if (id) return mentors.find((m) => m.id === id)?.name;
+    if (user.actualRole === "mentor") return user.name;
+    return undefined;
+  }, [data?.mentorProfileId, user.mentorId, user.actualRole, user.name]);
+  const periodSearch = useMemo(() => lastNDaysSearch(rangeDays), [rangeDays]);
+  const reportsSearch = { ...periodSearch, coach: mentorName ?? "" };
+  const interactionsSearch = { ...periodSearch, mentorId: data?.mentorProfileId ?? user.mentorId ?? "" };
+  const mediaSearch = { ...periodSearch, uploaderName: mentorName ?? "" };
+  const outstandingSearch = { ...periodSearch, coach: mentorName ?? "" };
 
   const toggleFilter = (type: string) => {
     setFilters((prev) =>
@@ -123,7 +145,7 @@ export function MentorDashboard({ user }: Props) {
             ? "Loading your dashboard…"
             : isError
               ? "Couldn't load your dashboard."
-              : "Your reporting activity — last 14 days"}
+              : `Your reporting activity — last ${rangeDays} days`}
         </p>
         {isError && (
           <button
@@ -138,6 +160,7 @@ export function MentorDashboard({ user }: Props) {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <Link
           to="/reports"
+          search={reportsSearch}
           className="block rounded-lg transition-transform hover:-translate-y-0.5 hover:ring-1 hover:ring-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           aria-label="View match reports"
         >
@@ -151,6 +174,7 @@ export function MentorDashboard({ user }: Props) {
         </Link>
         <Link
           to="/interactions"
+          search={interactionsSearch}
           className="block rounded-lg transition-transform hover:-translate-y-0.5 hover:ring-1 hover:ring-info/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-info"
           aria-label="View interactions"
         >
@@ -164,6 +188,7 @@ export function MentorDashboard({ user }: Props) {
         </Link>
         <Link
           to="/media"
+          search={mediaSearch}
           className="block rounded-lg transition-transform hover:-translate-y-0.5 hover:ring-1 hover:ring-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           aria-label="View match clips"
         >
@@ -177,6 +202,7 @@ export function MentorDashboard({ user }: Props) {
         </Link>
         <Link
           to="/reports"
+          search={outstandingSearch}
           className="block rounded-lg transition-transform hover:-translate-y-0.5 hover:ring-1 hover:ring-destructive/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive"
           aria-label="View outstanding actions"
         >

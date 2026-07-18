@@ -1,18 +1,47 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { zodValidator, fallback } from "@tanstack/zod-adapter";
+import { z } from "zod";
 import { PageHeader, Card, Pill, Avatar } from "@/components/primitives";
 import { DataSourceBanner } from "@/lib/data-classification";
 import { interactions, getGk, getMentor, formatDate, formatRelative } from "@/lib/mock-data";
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { X } from "lucide-react";
 import { withPermission } from "@/components/require-permission";
 
-export const Route = createFileRoute("/interactions")({ component: withPermission(InteractionsPage, "interactions.view") });
+const interactionsSearchSchema = z.object({
+  from: fallback(z.string(), "").default(""),
+  to: fallback(z.string(), "").default(""),
+  mentorId: fallback(z.string(), "").default(""),
+});
+
+export const Route = createFileRoute("/interactions")({
+  validateSearch: zodValidator(interactionsSearchSchema),
+  component: withPermission(InteractionsPage, "interactions.view"),
+});
 
 const TYPES = ["All", "Live Match Observation", "Training Ground Visit", "Face to Face", "Video Review Session", "Phone Call", "WhatsApp Feedback", "Development Meeting", "Scouting Assignment"] as const;
 
 function InteractionsPage() {
+  const { from, to, mentorId } = Route.useSearch();
   const [type, setType] = useState<(typeof TYPES)[number]>("All");
-  const sorted = [...interactions].sort((a, b) => +new Date(b.date) - +new Date(a.date));
-  const filtered = type === "All" ? sorted : sorted.filter((i) => i.type === type);
+  const sorted = useMemo(() => [...interactions].sort((a, b) => +new Date(b.date) - +new Date(a.date)), []);
+  const filtered = useMemo(() => {
+    let list = sorted;
+    if (mentorId) list = list.filter((i) => i.mentorId === mentorId);
+    if (from && to) {
+      const start = new Date(from).getTime();
+      const end = new Date(to).getTime();
+      list = list.filter((i) => {
+        const t = new Date(i.date).getTime();
+        return t >= start && t <= end;
+      });
+    }
+    if (type !== "All") list = list.filter((i) => i.type === type);
+    return list;
+  }, [sorted, mentorId, from, to, type]);
+
+  const hasFilters = Boolean(mentorId) || (Boolean(from) && Boolean(to));
+  const clearSearch = { from: "", to: "", mentorId: "" };
 
   return (
     <div className="space-y-5">
@@ -27,6 +56,17 @@ function InteractionsPage() {
           <button key={t} onClick={() => setType(t)} className={`px-3 py-1.5 rounded-md border text-xs transition-colors ${type === t ? "bg-accent border-accent text-accent-foreground" : "border-border hover:bg-accent/40 text-muted-foreground"}`}>{t}</button>
         ))}
       </div>
+
+      {hasFilters && (
+        <div className="flex flex-wrap items-center gap-2 text-xs">
+          <span className="text-muted-foreground uppercase tracking-wider">Scoped to:</span>
+          {mentorId && <Pill tone="muted">{getMentor(mentorId)?.name ?? mentorId}</Pill>}
+          {from && to && <Pill tone="muted">{new Date(from).toLocaleDateString("en-GB", { day: "numeric", month: "short" })} – {new Date(to).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</Pill>}
+          <Link to="/interactions" search={clearSearch} className="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground ml-2">
+            <X className="size-3" /> Clear
+          </Link>
+        </div>
+      )}
 
       <Card>
         <table className="w-full text-sm">
