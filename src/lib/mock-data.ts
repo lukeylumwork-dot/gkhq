@@ -332,6 +332,7 @@ export const goalkeepers: Goalkeeper[] = SEED.map((s, i) => {
     name: s.name,
     initials: initialsOf(s.name),
     status, tier: status,
+    tierLevel: deriveTierLevel(s),
     region,
     mentorId,
     club: s.club, league: s.league,
