@@ -1,5 +1,5 @@
 import { Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, Users, UserCog, MessageSquare, FileText, Database, FolderOpen, BellRing, Calendar, BarChart3, Search, Plus, LogOut, ChevronDown, ShieldCheck, History, Check, Trash2, X } from "lucide-react";
+import { LayoutDashboard, Users, UserCog, MessageSquare, FileText, Database, FolderOpen, BellRing, Calendar, BarChart3, Search, Plus, LogOut, ShieldCheck, History, Check, Trash2, X, Menu } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth, ROLE_LABEL, type Permission, type Role } from "@/lib/auth";
 import { useEffect, useRef, useState } from "react";
@@ -23,14 +23,13 @@ const NAV: NavItem[] = [
   { to: "/executive", label: "Executive", icon: BarChart3, perm: "executive.view" },
   { to: "/system/users", label: "Users & Roles", icon: ShieldCheck, perm: "system.manage" },
   { to: "/system/permissions", label: "Permission Check", icon: ShieldCheck, perm: "goalkeepers.view" },
-
 ];
 
 export function AppShell() {
   const { user, can, signOut, setViewAsRole } = useAuth();
   const path = useRouterState({ select: (s) => s.location.pathname });
   const navigate = useNavigate();
-  const [menuOpen, setMenuOpen] = useState(false);
+  const [navOpen, setNavOpen] = useState(false);
   const [bellOpen, setBellOpen] = useState(false);
   const [workflow, setWorkflow] = useState<WorkflowKind | null>(null);
   const bellRef = useRef<HTMLDivElement>(null);
@@ -44,6 +43,9 @@ export function AppShell() {
       navigate({ to: "/login" as never, search: { redirect: path } as never, replace: true });
     }
   }, [user, isPublic, navigate, path]);
+
+  // Close drawer on route change
+  useEffect(() => { setNavOpen(false); }, [path]);
 
   if (isPublic) return <Outlet />;
   if (!user) return <div className="min-h-screen bg-background" />;
@@ -60,55 +62,12 @@ export function AppShell() {
 
   return (
     <div className="flex min-h-screen bg-background text-foreground">
-      <aside className="hidden md:flex w-60 shrink-0 flex-col border-r border-sidebar-border bg-sidebar">
-        <div className="flex items-center gap-2.5 px-5 h-14 border-b border-sidebar-border">
-          <img src="/app-icon-120.png" alt="GKHQ" width={28} height={28} className="size-7 rounded-[6px] shrink-0" />
-          <div className="flex flex-col leading-tight min-w-0">
-            <span className="text-sm font-semibold tracking-tight truncate">{user.name}</span>
-            <span className="text-[10px] uppercase tracking-wider text-muted-foreground truncate">{ROLE_LABEL[user.role]}</span>
-          </div>
-        </div>
-        <nav className="flex-1 p-2 space-y-0.5 overflow-y-auto">
-          {visible.map((n) => {
-            const active = n.exact ? path === n.to : path.startsWith(n.to);
-            const Icon = n.icon;
-            return (
-              <Link
-                key={n.to}
-                to={n.to as never}
-                className={cn(
-                  "flex items-center gap-2.5 px-3 py-1.5 rounded-[6px] text-[12.5px] font-semibold uppercase tracking-[0.05em] transition-colors",
-                  active
-                    ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                    : "text-sidebar-foreground/75 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground",
-                )}
-              >
-                <Icon className="size-4" />
-                {n.label}
-              </Link>
-            );
-          })}
-        </nav>
-        <div className="p-3 border-t border-sidebar-border relative">
-          <button onClick={() => setMenuOpen((v) => !v)} className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded-md hover:bg-sidebar-accent/60">
-            <div className="size-7 rounded-full bg-accent text-accent-foreground grid place-items-center text-xs font-semibold">{user.initials}</div>
-            <div className="flex-1 flex flex-col leading-tight text-left min-w-0">
-              <span className="text-xs font-medium truncate">{user.name}</span>
-              <span className="text-[10px] text-muted-foreground truncate">{ROLE_LABEL[user.role]} · {user.title}</span>
-            </div>
-            <ChevronDown className="size-3.5 text-muted-foreground" />
-          </button>
-          {menuOpen && (
-            <div className="absolute bottom-full left-3 right-3 mb-1 rounded-md border border-border bg-popover shadow-lg overflow-hidden">
-              <button onClick={() => { signOut(); setMenuOpen(false); navigate({ to: "/login" as never }); }} className="w-full text-left px-3 py-2 text-xs hover:bg-accent flex items-center gap-2"><LogOut className="size-3.5" />Sign out</button>
-            </div>
-          )}
-        </div>
-      </aside>
-
       <div className="flex flex-1 flex-col min-w-0">
         <header className="h-14 flex items-center gap-3 px-4 md:px-6 border-b border-border bg-sidebar/95 backdrop-blur sticky top-0 z-10">
-          <div className="md:hidden font-display uppercase tracking-[0.04em] font-bold">GKHQ</div>
+          <div className="flex items-center gap-2.5 shrink-0">
+            <img src="/app-icon-120.png" alt="GKHQ" width={28} height={28} className="size-7 rounded-[6px]" />
+            <span className="hidden sm:inline font-display uppercase tracking-[0.04em] font-bold text-sm">GKHQ</span>
+          </div>
           <div className="flex-1 max-w-xl relative">
             <Search className="size-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <input placeholder="Search goalkeepers, mentors, reports…" className="w-full h-9 pl-9 pr-14 rounded-md bg-input border border-border text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/40" />
@@ -155,15 +114,6 @@ export function AppShell() {
               <Plus className="size-4" />{primaryAction.label}
             </button>
           )}
-          <button
-            onClick={() => { signOut(); navigate({ to: "/login" as never }); }}
-            title="Sign out"
-            aria-label="Sign out"
-            className="inline-flex items-center gap-1.5 h-9 px-2.5 md:px-3 rounded-md border border-border text-xs uppercase tracking-[0.06em] font-semibold hover:bg-accent"
-          >
-            <LogOut className="size-4" />
-            <span className="hidden md:inline">Sign out</span>
-          </button>
           <div ref={bellRef} className="relative">
             <button onClick={() => setBellOpen((v) => !v)} className="relative size-9 grid place-items-center rounded-md border border-border hover:bg-accent">
               <BellRing className="size-4" />
@@ -222,32 +172,72 @@ export function AppShell() {
               </>
             )}
           </div>
+          <button
+            onClick={() => setNavOpen(true)}
+            title="Open menu"
+            aria-label="Open menu"
+            className="inline-flex items-center gap-1.5 h-9 px-2.5 md:px-3 rounded-md border border-border text-xs uppercase tracking-[0.06em] font-semibold hover:bg-accent"
+          >
+            <Menu className="size-4" />
+            <span className="hidden md:inline">Menu</span>
+          </button>
         </header>
-        <main className="flex-1 min-w-0 p-4 md:p-6 pb-24 md:pb-6">
+        <main className="flex-1 min-w-0 p-4 md:p-6">
           <Outlet />
         </main>
       </div>
 
-      {/* Mobile bottom navigation — primary routes for the current role */}
-      <nav className="md:hidden fixed bottom-0 inset-x-0 z-20 border-t border-border bg-background/95 backdrop-blur grid grid-cols-5 h-16 pb-safe">
-        {visible.slice(0, 5).map((n) => {
-          const active = n.exact ? path === n.to : path.startsWith(n.to);
-          const Icon = n.icon;
-          return (
-            <Link
-              key={n.to}
-              to={n.to as never}
-              className={cn(
-                "flex flex-col items-center justify-center gap-0.5 text-[10px] font-medium",
-                active ? "text-primary" : "text-muted-foreground",
-              )}
-            >
-              <Icon className="size-5" />
-              <span className="truncate max-w-[64px]">{n.label}</span>
-            </Link>
-          );
-        })}
-      </nav>
+      {/* Slide-out navigation drawer */}
+      {navOpen && (
+        <>
+          <div className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm" onClick={() => setNavOpen(false)} />
+          <aside className="fixed inset-y-0 right-0 z-50 w-72 flex flex-col border-l border-sidebar-border bg-sidebar shadow-2xl">
+            <div className="flex items-center gap-2.5 px-5 h-14 border-b border-sidebar-border">
+              <img src="/app-icon-120.png" alt="GKHQ" width={28} height={28} className="size-7 rounded-[6px] shrink-0" />
+              <div className="flex flex-col leading-tight min-w-0 flex-1">
+                <span className="text-sm font-semibold tracking-tight truncate">{user.name}</span>
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground truncate">{ROLE_LABEL[user.role]}</span>
+              </div>
+              <button
+                onClick={() => setNavOpen(false)}
+                aria-label="Close menu"
+                className="size-8 grid place-items-center rounded-md hover:bg-sidebar-accent/60 text-muted-foreground"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+            <nav className="flex-1 p-2 space-y-0.5 overflow-y-auto">
+              {visible.map((n) => {
+                const active = n.exact ? path === n.to : path.startsWith(n.to);
+                const Icon = n.icon;
+                return (
+                  <Link
+                    key={n.to}
+                    to={n.to as never}
+                    className={cn(
+                      "flex items-center gap-2.5 px-3 py-2 rounded-[6px] text-[12.5px] font-semibold uppercase tracking-[0.05em] transition-colors",
+                      active
+                        ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                        : "text-sidebar-foreground/75 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground",
+                    )}
+                  >
+                    <Icon className="size-4" />
+                    {n.label}
+                  </Link>
+                );
+              })}
+            </nav>
+            <div className="p-3 border-t border-sidebar-border">
+              <button
+                onClick={() => { signOut(); setNavOpen(false); navigate({ to: "/login" as never }); }}
+                className="w-full flex items-center gap-2 px-3 py-2 rounded-md border border-border text-xs uppercase tracking-[0.06em] font-semibold hover:bg-accent"
+              >
+                <LogOut className="size-4" />Sign out
+              </button>
+            </div>
+          </aside>
+        </>
+      )}
 
       <WorkflowDialog kind={workflow} onClose={() => setWorkflow(null)} />
     </div>
