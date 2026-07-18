@@ -81,12 +81,20 @@ function ReportsPage() {
   }, [reports, coachFilter, from, to]);
 
   const hasFilters = Boolean(coach) || (Boolean(from) && Boolean(to));
-  const clearSearch = { from: "", to: "", coach: "", mentorProfileId: "" };
+  const clearSearch = { from: "", to: "", coach: "", mentorProfileId: "", source: "" };
 
   return (
     <div className="space-y-5">
       <PageHeader
-        title="Match Report Submission Centre"
+        breadcrumbs={
+          navSource
+            ? [
+                { label: "Dashboard", to: "/" },
+                { label: navSource.label },
+              ]
+            : undefined
+        }
+        title={navSource?.title ?? "Match Report Submission Centre"}
         description={
           isLoading
             ? "Loading match reports from Google Sheets…"
@@ -108,6 +116,7 @@ function ReportsPage() {
           </div>
         }
       />
+
 
       <DataSourceBanner
         classification="transitional"
