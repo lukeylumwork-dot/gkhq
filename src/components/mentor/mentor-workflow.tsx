@@ -13,6 +13,10 @@ import {
   type Rpm7Scores,
   type WellbeingFlag,
 } from "@/lib/mentor-domain";
+import {
+  ALLOWED_INTERACTION_TYPES,
+  InvalidInteractionTypeError,
+} from "@/lib/mentor-session-store";
 import { Avatar } from "@/components/primitives";
 
 // -----------------------------------------------------------------------------
