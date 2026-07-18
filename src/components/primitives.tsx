@@ -26,15 +26,49 @@ export function DutyBadge({ level, label }: { level: DutyLevel; label: string })
   );
 }
 
-export function PageHeader({ title, description, action }: { title: string; description?: string; action?: ReactNode }) {
+export function PageHeader({ title, description, action, breadcrumbs }: { title: string; description?: string; action?: ReactNode; breadcrumbs?: BreadcrumbItem[] }) {
   return (
-    <div className="flex flex-wrap items-end justify-between gap-3 mb-6">
-      <div>
-        <h1 className="text-3xl font-display font-bold uppercase tracking-[0.02em]">{title}</h1>
-        {description && <p className="text-sm text-muted-foreground mt-1">{description}</p>}
+    <div className="mb-6">
+      {breadcrumbs && breadcrumbs.length > 0 && (
+        <Breadcrumbs items={breadcrumbs} className="mb-2" />
+      )}
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-3xl font-display font-bold uppercase tracking-[0.02em]">{title}</h1>
+          {description && <p className="text-sm text-muted-foreground mt-1">{description}</p>}
+        </div>
+        {action}
       </div>
-      {action}
     </div>
+  );
+}
+
+export interface BreadcrumbItem {
+  label: string;
+  to?: string;
+}
+
+export function Breadcrumbs({ items, className }: { items: BreadcrumbItem[]; className?: string }) {
+  return (
+    <nav aria-label="Breadcrumb" className={cn("flex items-center flex-wrap gap-1 text-[11px] uppercase tracking-wider font-medium", className)}>
+      {items.map((item, idx) => {
+        const isLast = idx === items.length - 1;
+        return (
+          <span key={`${item.label}-${idx}`} className="inline-flex items-center gap-1">
+            {item.to && !isLast ? (
+              <Link to={item.to} className="text-muted-foreground hover:text-foreground transition-colors">
+                {item.label}
+              </Link>
+            ) : (
+              <span className={isLast ? "text-foreground" : "text-muted-foreground"} aria-current={isLast ? "page" : undefined}>
+                {item.label}
+              </span>
+            )}
+            {!isLast && <ChevronRight className="size-3 text-muted-foreground/60" />}
+          </span>
+        );
+      })}
+    </nav>
   );
 }
 
