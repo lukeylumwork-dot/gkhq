@@ -23,13 +23,19 @@ export const getMentorDashboardStats = createServerFn({ method: "GET" })
   .handler(async ({ context }): Promise<MentorDashboardStats> => {
     const { supabase, userId } = context;
 
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("mentor_id")
-      .eq("id", userId)
-      .maybeSingle();
+    const [{ data: profile }, { data: roles }] = await Promise.all([
+      supabase.from("profiles").select("mentor_id").eq("id", userId).maybeSingle(),
+      supabase.from("user_roles").select("role").eq("user_id", userId),
+    ]);
 
-    const mentorId = profile?.mentor_id ?? null;
+    let mentorId = profile?.mentor_id ?? null;
+
+    // Allow super admins who are testing the mentor view to see a populated
+    // dashboard even if their own profile has no mentor_id. This is a local
+    // mock-data fallback and is gated by the server-side auth check above.
+    if (!mentorId && (roles ?? []).some((r) => r.role === "super_admin")) {
+      mentorId = "m-david-rouse";
+    }
 
     if (!mentorId) {
       return {

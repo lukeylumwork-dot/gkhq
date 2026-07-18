@@ -14,14 +14,14 @@ function Dashboard() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!user) navigate({ to: "/login", replace: true });
+    if (!user) navigate({ to: "/login", search: { next: "/" }, replace: true });
   }, [user, navigate]);
 
   if (!user) return null;
 
-  // Dedicated mentor experience — priority-led, mobile-first.
-  if (user.role === "mentor" && user.mentorId) {
-    return <MentorDashboard user={user} mentorProfileId={user.mentorId} />;
+  // Dedicated mentor experience — only the stat cards shown below are mentor-specific.
+  if (user.role === "mentor") {
+    return <MentorDashboard user={user} mentorProfileId={user.mentorId ?? ""} />;
   }
 
   const pool = goalkeepers;
