@@ -82,6 +82,7 @@ export const matchReportSubmitSchema = z.object({
   coach: z.string().trim().min(1, "Coach is required").max(80),
   team: z.string().trim().min(1, "Team is required").max(80),
   opponent: z.string().trim().min(1, "Opponent is required").max(80),
+  competition: z.string().trim().max(120).optional().default(""),
   match_date: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD")
