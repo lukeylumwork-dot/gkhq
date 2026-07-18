@@ -22,6 +22,7 @@ import type { PillarId } from "./schema";
 export interface ReportDraftSnapshot {
   goalkeeper: string;
   coach: string;
+  competition: string;
   team: string;
   opponent: string;
   matchDate: string;
