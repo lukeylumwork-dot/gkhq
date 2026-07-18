@@ -60,12 +60,20 @@ function InteractionsPage() {
   }, [sorted, mentorId, from, to, type]);
 
   const hasFilters = Boolean(mentorId) || (Boolean(from) && Boolean(to)) || Boolean(typeParam);
-  const clearSearch = { from: "", to: "", mentorId: "", type: "" };
+  const clearSearch = { from: "", to: "", mentorId: "", type: "", source: "" };
 
   return (
     <div className="space-y-5">
       <PageHeader
-        title="Interaction Tracking"
+        breadcrumbs={
+          navSource
+            ? [
+                { label: "Dashboard", to: "/" },
+                { label: navSource.label },
+              ]
+            : undefined
+        }
+        title={navSource?.title ?? "Interaction Tracking"}
         description="Every logged touchpoint between mentors and goalkeepers."
         action={<button className="h-9 px-3 rounded-md bg-primary text-primary-foreground text-sm font-medium">Log Interaction</button>}
       />
