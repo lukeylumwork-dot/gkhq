@@ -560,17 +560,43 @@ function ReportForm({ onDone }: { onDone: () => void }) {
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Phase 1 safety: final submission is temporarily disabled while report
-    // storage is being verified. The Google Sheets serverFn (submitFn) and
-    // attachMediaToReport helper are intentionally NOT called from this path.
-    // Drafts continue to save locally. The full submission path remains in
-    // Git history and will be re-enabled once persistence is verified.
-    void submitFn;
+    if (submitting) return;
     void attachMediaToReport;
-    setError(
-      "Final submission is temporarily unavailable while report storage is being verified. Your draft is stored on this device only."
-    );
-    return;
+    setError(null);
+    setFieldErrors({});
+    setSubmitting(true);
+    try {
+      const finalComments = competition.trim()
+        ? `Competition: ${competition.trim()}${comments.trim() ? `\n\n${comments.trim()}` : ""}`
+        : comments;
+      const res = await submitFn({
+        data: {
+          payload: {
+            goalkeeper: goalkeeper.trim(),
+            coach: coach.trim(),
+            team: team.trim(),
+            opponent: opponent.trim(),
+            match_date: matchDate,
+            protect_goal: scores.protect_goal,
+            protect_space: scores.protect_space,
+            protect_air: scores.protect_air,
+            control_play: scores.control_play,
+            change_play: scores.change_play,
+            psych: scores.psych,
+            physical: scores.physical,
+            comments: finalComments,
+          },
+        },
+      });
+      if (user) clearDraft(user.id);
+      setDone({ report_id: res.report_id, average: res.average });
+      try { window.dispatchEvent(new CustomEvent("rpm:report-submitted", { detail: res })); } catch { /* ignore */ }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Submission failed. Please try again.";
+      setError(msg);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
