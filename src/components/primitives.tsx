@@ -78,6 +78,20 @@ export function TierBadge({ tier }: { tier: Tier }) {
 }
 export const StatusBadge = TierBadge;
 
+export function TierLevelBadge({ level }: { level: 1 | 2 | 3 | 4 }) {
+  const styles: Record<1 | 2 | 3 | 4, string> = {
+    1: "bg-warning/15 text-warning border-warning/40",
+    2: "bg-info/15 text-info border-info/30",
+    3: "bg-primary/15 text-primary border-primary/30",
+    4: "bg-muted text-muted-foreground border-border",
+  };
+  return (
+    <span className={cn("inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium border whitespace-nowrap tabular-nums", styles[level])}>
+      Tier {level}
+    </span>
+  );
+}
+
 export function Pill({ children, tone = "muted" }: { children: ReactNode; tone?: "muted" | "success" | "warning" | "destructive" | "info" }) {
   const t: Record<string, string> = {
     muted: "bg-muted text-muted-foreground border-border",

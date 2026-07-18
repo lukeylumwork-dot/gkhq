@@ -1,39 +1,63 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { goalkeepers, interactions, reports, media, calendarEvents, dutyStatusForGk } from "@/lib/mock-data";
+import { goalkeepers, interactions, reports, media, calendarEvents, mentors } from "@/lib/mock-data";
+import type { TierLevel } from "@/lib/mock-data";
+
+export type UpcomingPlannedType =
+  | "Coffee Meeting"
+  | "Attend Live Match"
+  | "Training Ground Visit"
+  | string;
 
 export interface MentorUpcomingInteraction {
   id: string;
   date: string;
   title: string;
   type: string;
+  plannedType: UpcomingPlannedType | null;
   gkId: string | null;
   gkName: string | null;
   gkInitials: string | null;
-  gkTier: string | null;
+  gkStatus: string | null;
+  gkTierLevel: TierLevel | null;
   gkClub: string | null;
   gkLeague: string | null;
   gkFreeAgent: boolean;
-  gkInjured: boolean;
 }
 
 export interface MentorDashboardStats {
   mentorProfileId: string | null;
-  totalGoalkeepers: number;
-  upcomingInteractions: number;
   reportsLast14: number;
+  interactionsLast14: number;
   clipsLast14: number;
-  overdueReports: number;
+  outstandingActions: number;
   upcomingList: MentorUpcomingInteraction[];
   lastUpdatedAt: string;
+}
+
+// Map calendar event types to the supported in-person planned interaction
+// types the pilot brief lists. Falls back to the original label when no
+// clean mapping exists.
+function mapPlannedType(type: string): UpcomingPlannedType | null {
+  switch (type) {
+    case "Match":
+    case "Observation":
+      return "Attend Live Match";
+    case "Mentor Visit":
+      return "Training Ground Visit";
+    case "Meeting":
+      return "Coffee Meeting";
+    default:
+      return null;
+  }
 }
 
 /**
  * Server-side mentor dashboard aggregation.
  *
- * The mentor identity is derived from the authenticated session's profile
- * (profiles.mentor_id) — never accepted from the client — so a mentor can
- * only see counts scoped to their own assigned goalkeepers.
+ * Stats are scoped to the signed-in mentor's OWN submissions and calendar,
+ * not to a roster of assigned goalkeepers. Mentors work collaboratively
+ * across the whole RPM roster.
  */
 export const getMentorDashboardStats = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -47,34 +71,78 @@ export const getMentorDashboardStats = createServerFn({ method: "GET" })
 
     let mentorId = profile?.mentor_id ?? null;
 
-    // Allow super admins who are testing the mentor view to see a populated
-    // dashboard even if their own profile has no mentor_id. This is a local
-    // mock-data fallback and is gated by the server-side auth check above.
+    // Allow super admins previewing the mentor view to see populated data.
     if (!mentorId && (roles ?? []).some((r) => r.role === "super_admin")) {
       mentorId = "m-david-rouse";
-    }
-
-    if (!mentorId) {
-      return {
-        mentorProfileId: null,
-        totalGoalkeepers: 0,
-        upcomingInteractions: 0,
-        reportsLast14: 0,
-        clipsLast14: 0,
-        overdueReports: 0,
-        upcomingList: [],
-        lastUpdatedAt: new Date().toISOString(),
-      };
     }
 
     const now = Date.now();
     const in14 = now + 14 * 86400000;
     const ago14 = now - 14 * 86400000;
 
-    const roster = goalkeepers.filter((g) => g.mentorId === mentorId);
-    const rosterIds = new Set(roster.map((g) => g.id));
+    if (!mentorId) {
+      return {
+        mentorProfileId: null,
+        reportsLast14: 0,
+        interactionsLast14: 0,
+        clipsLast14: 0,
+        outstandingActions: 0,
+        upcomingList: [],
+        lastUpdatedAt: new Date().toISOString(),
+      };
+    }
+
+    const mentorName = mentors.find((m) => m.id === mentorId)?.name;
     const gkById = new Map(goalkeepers.map((g) => [g.id, g]));
 
+    // Activity by this mentor in the last 14 days.
+    const reportsLast14 = reports.filter(
+      (r) => r.authorId === mentorId && +new Date(r.date) >= ago14 && +new Date(r.date) <= now,
+    ).length;
+
+    const mentorInteractions14 = interactions.filter(
+      (i) => i.mentorId === mentorId && +new Date(i.date) >= ago14 && +new Date(i.date) <= now,
+    );
+    const interactionsLast14 = mentorInteractions14.length;
+
+    const clipsLast14 = media.filter(
+      (m) =>
+        m.kind === "video" &&
+        (mentorName ? m.uploadedBy === mentorName : false) &&
+        +new Date(m.date) >= ago14 &&
+        +new Date(m.date) <= now,
+    ).length;
+
+    // Outstanding actions: live match observations logged by this mentor
+    // in the last 30 days that lack either a follow-up match report or a
+    // matching video clip within ±3 days of the observation date.
+    const mentorObservations = interactions.filter(
+      (i) =>
+        i.mentorId === mentorId &&
+        i.type === "Live Match Observation" &&
+        +new Date(i.date) >= now - 30 * 86400000 &&
+        +new Date(i.date) <= now - 3 * 86400000,
+    );
+    const mentorReports = reports.filter((r) => r.authorId === mentorId);
+    const mentorClips = media.filter(
+      (m) => m.kind === "video" && (mentorName ? m.uploadedBy === mentorName : false),
+    );
+    const within3d = (a: string, b: string) =>
+      Math.abs(+new Date(a) - +new Date(b)) <= 3 * 86400000;
+
+    let outstandingActions = 0;
+    for (const obs of mentorObservations) {
+      const hasReport = mentorReports.some(
+        (r) => r.gkId === obs.gkId && within3d(r.date, obs.date),
+      );
+      const hasClip = mentorClips.some(
+        (m) => m.gkId === obs.gkId && within3d(m.date, obs.date),
+      );
+      if (!hasReport) outstandingActions += 1;
+      if (!hasClip) outstandingActions += 1;
+    }
+
+    // Upcoming interactions: this mentor's calendar in the next 14 days.
     const upcomingEvents = calendarEvents
       .filter((e) => e.mentorId === mentorId && +new Date(e.date) >= now && +new Date(e.date) <= in14)
       .sort((a, b) => +new Date(a.date) - +new Date(b.date));
@@ -86,38 +154,24 @@ export const getMentorDashboardStats = createServerFn({ method: "GET" })
         date: e.date,
         title: e.title,
         type: e.type,
+        plannedType: mapPlannedType(e.type),
         gkId: gk?.id ?? null,
         gkName: gk?.name ?? null,
         gkInitials: gk?.initials ?? null,
-        gkTier: gk?.tier ?? null,
+        gkStatus: gk?.status ?? null,
+        gkTierLevel: gk?.tierLevel ?? null,
         gkClub: gk?.club ?? null,
         gkLeague: gk?.league ?? null,
-        gkFreeAgent: gk?.tier === "Free Agent",
-        gkInjured: false,
+        gkFreeAgent: gk?.status === "Free Agent",
       };
     });
 
-    const reportsLast14 = reports.filter(
-      (r) => r.authorId === mentorId && +new Date(r.date) >= ago14 && +new Date(r.date) <= now,
-    ).length;
-
-    const clipsLast14 = media.filter(
-      (m) => rosterIds.has(m.gkId) && +new Date(m.date) >= ago14 && +new Date(m.date) <= now,
-    ).length;
-
-    const overdueReports = roster.filter((g) => dutyStatusForGk(g).level === "red").length;
-
-    // interactions is imported to keep the mentor-scoped domain surface complete
-    // for future extensions (e.g. recent-activity feed) without another round-trip.
-    void interactions;
-
     return {
       mentorProfileId: mentorId,
-      totalGoalkeepers: roster.length,
-      upcomingInteractions: upcomingList.length,
       reportsLast14,
+      interactionsLast14,
       clipsLast14,
-      overdueReports,
+      outstandingActions,
       upcomingList,
       lastUpdatedAt: new Date().toISOString(),
     };

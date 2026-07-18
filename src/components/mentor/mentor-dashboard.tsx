@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Link } from "@tanstack/react-router";
 import { ArrowUpRight, CalendarClock } from "lucide-react";
-import { Card, StatCard, SectionTitle, Avatar, TierBadge, Pill } from "@/components/primitives";
+import { Card, StatCard, SectionTitle, Avatar, TierBadge, TierLevelBadge, Pill } from "@/components/primitives";
 import { getMentorDashboardStats } from "@/lib/mentor-dashboard.functions";
 import type { Tier } from "@/lib/mock-data";
 import type { SessionUser } from "@/lib/auth";
@@ -12,7 +12,7 @@ interface Props {
   mentorProfileId: string;
 }
 
-function formatEventDate(iso: string) {
+function formatEventDateTime(iso: string) {
   const d = new Date(iso);
   const day = d.getDate();
   const suffix =
@@ -20,7 +20,9 @@ function formatEventDate(iso: string) {
     : day % 10 === 2 && day !== 12 ? "nd"
     : day % 10 === 3 && day !== 13 ? "rd"
     : "th";
-  return `on ${d.toLocaleString("en-GB", { month: "long" })} ${day}${suffix}`;
+  const month = d.toLocaleString("en-GB", { month: "long" });
+  const time = d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+  return `${month} ${day}${suffix} · ${time}`;
 }
 
 function formatRelativeTime(iso: string) {
@@ -45,6 +47,8 @@ export function MentorDashboard({ user }: Props) {
 
   const firstName = user.name.split(" ")[0];
   const upcoming = data?.upcomingList ?? [];
+  const updatedAt = data?.lastUpdatedAt ? formatRelativeTime(data.lastUpdatedAt) : undefined;
+  const period = "Last 14 days";
 
   return (
     <div className="space-y-6">
@@ -57,7 +61,7 @@ export function MentorDashboard({ user }: Props) {
             ? "Loading your dashboard…"
             : isError
               ? "Couldn't load your dashboard."
-              : "Here's the latest on your assigned goalkeepers"}
+              : "Your reporting activity — last 14 days"}
         </p>
         {isError && (
           <button
@@ -70,14 +74,35 @@ export function MentorDashboard({ user }: Props) {
       </header>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-        <StatCard label="Total Goalkeepers" value={data?.totalGoalkeepers ?? 0} hint="Assigned to you" updatedAt={data?.lastUpdatedAt ? formatRelativeTime(data.lastUpdatedAt) : undefined} />
-        <StatCard label="Upcoming Live Interactions" value={data?.upcomingInteractions ?? 0} hint="In the next 14 days" accent="info" emptyMessage="No upcoming sessions" updatedAt={data?.lastUpdatedAt ? formatRelativeTime(data.lastUpdatedAt) : undefined} />
-        <StatCard label="Match Reports" value={data?.reportsLast14 ?? 0} hint="Submitted in the last 14 days" accent="primary" updatedAt={data?.lastUpdatedAt ? formatRelativeTime(data.lastUpdatedAt) : undefined} />
-        <StatCard label="Match Clips" value={data?.clipsLast14 ?? 0} hint="Posted in the last 14 days" accent="primary" updatedAt={data?.lastUpdatedAt ? formatRelativeTime(data.lastUpdatedAt) : undefined} />
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-        <StatCard label="Overdue Match Reports" value={data?.overdueReports ?? 0} hint="Action required" accent="destructive" emptyMessage="All caught up" updatedAt={data?.lastUpdatedAt ? formatRelativeTime(data.lastUpdatedAt) : undefined} />
+        <StatCard
+          label="Match Reports Submitted"
+          value={data?.reportsLast14 ?? 0}
+          hint={period}
+          accent="primary"
+          updatedAt={updatedAt}
+        />
+        <StatCard
+          label="Interactions Logged"
+          value={data?.interactionsLast14 ?? 0}
+          hint={period}
+          accent="info"
+          updatedAt={updatedAt}
+        />
+        <StatCard
+          label="Match Clips Posted"
+          value={data?.clipsLast14 ?? 0}
+          hint={period}
+          accent="primary"
+          updatedAt={updatedAt}
+        />
+        <StatCard
+          label="Outstanding Actions"
+          value={data?.outstandingActions ?? 0}
+          hint="Overdue reports & clip uploads"
+          accent="destructive"
+          emptyMessage="All caught up"
+          updatedAt={updatedAt}
+        />
       </div>
 
       <Card className="p-4">
@@ -103,21 +128,21 @@ export function MentorDashboard({ user }: Props) {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-medium text-sm truncate">{e.gkName ?? "Unassigned"}</span>
-                    {e.gkTier && <TierBadge tier={e.gkTier as Tier} />}
+                    {e.gkStatus && <TierBadge tier={e.gkStatus as Tier} />}
                     {e.gkFreeAgent && <Pill tone="warning">Free Agent</Pill>}
-                    {e.gkInjured && <Pill tone="destructive">Injured</Pill>}
+                    {e.gkTierLevel && <TierLevelBadge level={e.gkTierLevel} />}
                   </div>
                   <div className="text-xs text-muted-foreground truncate">
                     {e.gkClub ? `${e.gkClub}${e.gkLeague ? ` — ${e.gkLeague}` : ""}` : "Free Agent"}
                   </div>
                 </div>
                 <div className="hidden md:block text-sm font-medium text-foreground/90 truncate max-w-[240px]">
-                  {e.type}
+                  {e.plannedType ?? e.type}
                 </div>
                 <div className="text-right shrink-0">
                   <div className="text-xs font-medium tabular-nums font-mono flex items-center gap-1 justify-end">
                     <CalendarClock className="size-3 text-muted-foreground" />
-                    {formatEventDate(e.date)}
+                    {formatEventDateTime(e.date)}
                   </div>
                 </div>
               </div>

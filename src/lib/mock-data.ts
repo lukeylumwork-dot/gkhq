@@ -9,6 +9,10 @@ export type Tier = Status;
 
 export type Region = "UK Based" | "Overseas" | "Free Agent";
 
+// RPM roster is grouped into four tiers. Detailed rules are managed
+// separately; the placeholder mapping in deriveTierLevel() is league-based.
+export type TierLevel = 1 | 2 | 3 | 4;
+
 export type InteractionType =
   | "Live Match Observation"
   | "Training Ground Visit"
@@ -55,6 +59,7 @@ export interface Goalkeeper {
   initials: string;
   status: Status;
   tier: Status; // alias for back-compat
+  tierLevel: TierLevel;
   region: Region;
   mentorId: string;
   club: string;
@@ -279,6 +284,12 @@ function deriveRegion(s: Seed): Region {
   if (s.league === "Free Agent") return "Free Agent";
   return OVERSEAS_LEAGUES.has(s.league) ? "Overseas" : "UK Based";
 }
+function deriveTierLevel(s: Seed): TierLevel {
+  if (s.league === "Premier League") return 1;
+  if (s.league === "EFL Championship" || s.league === "Serie A" || s.league === "MLS") return 2;
+  if (s.league === "EFL League One" || s.league === "SPFL Premiership" || s.league === "Danish Superliga" || s.league === "Allsvenskan" || s.league === "UAE Pro League" || s.league === "Australian A League") return 3;
+  return 4;
+}
 function contractISO(c: string): string {
   if (c === "—") return "—";
   // "June 2028" / "December 2026" / "January 2026"
@@ -321,6 +332,7 @@ export const goalkeepers: Goalkeeper[] = SEED.map((s, i) => {
     name: s.name,
     initials: initialsOf(s.name),
     status, tier: status,
+    tierLevel: deriveTierLevel(s),
     region,
     mentorId,
     club: s.club, league: s.league,
