@@ -22,7 +22,7 @@ const NAV: NavItem[] = [
   { to: "/calendar", label: "Calendar", icon: Calendar, perm: "calendar.view" },
   { to: "/executive", label: "Executive", icon: BarChart3, perm: "executive.view" },
   { to: "/system/users", label: "Users & Roles", icon: ShieldCheck, perm: "system.manage" },
-  { to: "/system/permissions", label: "Permission Check", icon: ShieldCheck, perm: "goalkeepers.view" },
+  { to: "/system/permissions", label: "Permission Check", icon: ShieldCheck, perm: "system.manage" },
 ];
 
 export function AppShell() {
@@ -114,64 +114,66 @@ export function AppShell() {
               <Plus className="size-4" />{primaryAction.label}
             </button>
           )}
-          <div ref={bellRef} className="relative">
-            <button onClick={() => setBellOpen((v) => !v)} className="relative size-9 grid place-items-center rounded-md border border-border hover:bg-accent">
-              <BellRing className="size-4" />
-              {notif.unread > 0 && (
-                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-destructive text-destructive-foreground text-[10px] font-mono font-semibold grid place-items-center">
-                  {notif.unread > 9 ? "9+" : notif.unread}
-                </span>
-              )}
-            </button>
-            {bellOpen && (
-              <>
-                <div className="fixed inset-0 z-20" onClick={() => setBellOpen(false)} />
-                <div className="absolute right-0 mt-2 w-[360px] rounded-md border border-border bg-popover shadow-xl z-30 overflow-hidden">
-                  <div className="flex items-center justify-between px-3 py-2 border-b border-border">
-                    <div className="flex items-center gap-1.5">
-                      <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Duty Notifications</div>
-                      <DataSourceBadge classification="mock" title="These duty-status notifications are generated from illustrative data." />
+          {can("alerts.view") && (
+            <div ref={bellRef} className="relative">
+              <button onClick={() => setBellOpen((v) => !v)} className="relative size-9 grid place-items-center rounded-md border border-border hover:bg-accent">
+                <BellRing className="size-4" />
+                {notif.unread > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-destructive text-destructive-foreground text-[10px] font-mono font-semibold grid place-items-center">
+                    {notif.unread > 9 ? "9+" : notif.unread}
+                  </span>
+                )}
+              </button>
+              {bellOpen && (
+                <>
+                  <div className="fixed inset-0 z-20" onClick={() => setBellOpen(false)} />
+                  <div className="absolute right-0 mt-2 w-[360px] rounded-md border border-border bg-popover shadow-xl z-30 overflow-hidden">
+                    <div className="flex items-center justify-between px-3 py-2 border-b border-border">
+                      <div className="flex items-center gap-1.5">
+                        <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Duty Notifications</div>
+                        <DataSourceBadge classification="mock" title="These duty-status notifications are generated from illustrative data." />
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <button onClick={() => notif.markAllRead()} title="Mark all read" className="p-1 rounded hover:bg-accent text-muted-foreground"><Check className="size-3.5" /></button>
+                        <button onClick={() => notif.clearAll()} title="Clear" className="p-1 rounded hover:bg-accent text-muted-foreground"><Trash2 className="size-3.5" /></button>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-1">
-                      <button onClick={() => notif.markAllRead()} title="Mark all read" className="p-1 rounded hover:bg-accent text-muted-foreground"><Check className="size-3.5" /></button>
-                      <button onClick={() => notif.clearAll()} title="Clear" className="p-1 rounded hover:bg-accent text-muted-foreground"><Trash2 className="size-3.5" /></button>
-                    </div>
-                  </div>
-                  <div className="max-h-[420px] overflow-y-auto">
-                    {notif.items.length === 0 ? (
-                      <div className="px-4 py-8 text-center text-xs text-muted-foreground">No duty status changes.</div>
-                    ) : (
-                      notif.items.slice(0, 30).map((n) => {
-                        const tone = n.to === "red" ? "bg-destructive" : n.to === "amber" ? "bg-warning" : "bg-success";
-                        return (
-                          <Link
-                            key={n.id}
-                            to="/goalkeepers/$gkId"
-                            params={{ gkId: n.gkId }}
-                            onClick={() => { notif.markRead(n.id); setBellOpen(false); }}
-                            className={cn("flex gap-2.5 px-3 py-2.5 border-b border-border/60 last:border-0 hover:bg-accent/40", !n.read && "bg-accent/20")}
-                          >
-                            <span className={cn("mt-1.5 size-2 rounded-full shrink-0", tone)} />
-                            <div className="flex-1 min-w-0">
-                              <div className="text-sm font-medium truncate">{n.gkName}</div>
-                              <div className="text-[11px] text-muted-foreground">
-                                Duty moved <span className="uppercase">{n.from}</span> → <span className="uppercase font-medium text-foreground/80">{n.to}</span>
+                    <div className="max-h-[420px] overflow-y-auto">
+                      {notif.items.length === 0 ? (
+                        <div className="px-4 py-8 text-center text-xs text-muted-foreground">No duty status changes.</div>
+                      ) : (
+                        notif.items.slice(0, 30).map((n) => {
+                          const tone = n.to === "red" ? "bg-destructive" : n.to === "amber" ? "bg-warning" : "bg-success";
+                          return (
+                            <Link
+                              key={n.id}
+                              to="/goalkeepers/$gkId"
+                              params={{ gkId: n.gkId }}
+                              onClick={() => { notif.markRead(n.id); setBellOpen(false); }}
+                              className={cn("flex gap-2.5 px-3 py-2.5 border-b border-border/60 last:border-0 hover:bg-accent/40", !n.read && "bg-accent/20")}
+                            >
+                              <span className={cn("mt-1.5 size-2 rounded-full shrink-0", tone)} />
+                              <div className="flex-1 min-w-0">
+                                <div className="text-sm font-medium truncate">{n.gkName}</div>
+                                <div className="text-[11px] text-muted-foreground">
+                                  Duty moved <span className="uppercase">{n.from}</span> → <span className="uppercase font-medium text-foreground/80">{n.to}</span>
+                                </div>
+                                <div className="text-[10px] text-muted-foreground mt-0.5">{formatRelative(n.date)}</div>
                               </div>
-                              <div className="text-[10px] text-muted-foreground mt-0.5">{formatRelative(n.date)}</div>
-                            </div>
-                            {!n.read && <span className="mt-1 size-1.5 rounded-full bg-primary shrink-0" />}
-                          </Link>
-                        );
-                      })
-                    )}
+                              {!n.read && <span className="mt-1 size-1.5 rounded-full bg-primary shrink-0" />}
+                            </Link>
+                          );
+                        })
+                      )}
+                    </div>
+                    <Link to="/alerts" onClick={() => setBellOpen(false)} className="block px-3 py-2 border-t border-border text-center text-xs text-primary hover:bg-accent/40">
+                      Open alerts & email settings →
+                    </Link>
                   </div>
-                  <Link to="/alerts" onClick={() => setBellOpen(false)} className="block px-3 py-2 border-t border-border text-center text-xs text-primary hover:bg-accent/40">
-                    Open alerts & email settings →
-                  </Link>
-                </div>
-              </>
-            )}
-          </div>
+                </>
+              )}
+            </div>
+          )}
           <button
             onClick={() => setNavOpen(true)}
             title="Open menu"
