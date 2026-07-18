@@ -47,7 +47,7 @@ export const listMatchReports = createServerFn({ method: "GET" })
     return a.match_date < b.match_date ? 1 : a.match_date > b.match_date ? -1 : 0;
   });
 
-  // Best-effort cache upsert. Failures don't block the read.
+  // Best-effort cache reconciliation. Failures don't block the read.
   try {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     if (parsed.length) {
@@ -75,12 +75,27 @@ export const listMatchReports = createServerFn({ method: "GET" })
         { onConflict: "report_id" },
       );
     }
+    // Prune cache rows that no longer exist in the sheet.
+    const liveIds = new Set(parsed.map((r) => r.report_id));
+    const { data: cached } = await supabaseAdmin
+      .from("match_reports_cache")
+      .select("report_id");
+    const stale = (cached ?? [])
+      .map((r) => r.report_id as string)
+      .filter((id) => !liveIds.has(id));
+    if (stale.length) {
+      await supabaseAdmin
+        .from("match_reports_cache")
+        .delete()
+        .in("report_id", stale);
+    }
   } catch (e) {
-    console.error("[match-reports] cache upsert skipped:", e);
+    console.error("[match-reports] cache reconcile skipped:", e);
   }
 
   return { reports: parsed };
 });
+
 
 // ---------------------------------------------------------------------------
 // getMatchReport
