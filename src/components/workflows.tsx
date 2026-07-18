@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { X, CheckCircle2, Upload, AlertCircle, Paperclip, Search, Trash2, Loader2 } from "lucide-react";
-import { goalkeepers, mentors } from "@/lib/mock-data";
+import { goalkeepers } from "@/lib/mock-data";
 import { useAuth, type SessionUser } from "@/lib/auth";
 import {
   ACCEPT_BY_KIND, MAX_FILE_BYTES, detectKind, formatBytes, uploadMedia,
@@ -93,7 +93,11 @@ export function WorkflowDialog({ kind, onClose }: { kind: WorkflowKind | null; o
           <div>
             <h3 className="text-base font-semibold">{TITLES[kind]}</h3>
             <p className="text-xs text-muted-foreground mt-0.5">
-              {kind === "media" || kind === "report" ? "Stored in Lovable Cloud" : "Saved locally to this session"}
+              {kind === "report"
+                ? "Draft autosaves locally · Submission writes to the RPM Match Reports Google Sheet"
+                : kind === "media"
+                  ? "Stored in Lovable Cloud"
+                  : "Saved locally to this session"}
             </p>
           </div>
           <button onClick={onClose} className="size-8 grid place-items-center rounded-md hover:bg-accent"><X className="size-4" /></button>
@@ -200,11 +204,12 @@ function ReportForm({ onDone }: { onDone: () => void }) {
   const { user } = useAuth();
   const submitFn = useServerFn(submitMatchReport);
 
-  const canOverrideCoach = !!user && (user.role === "super_admin" || user.role === "admin" || user.role === "mentor_manager");
+  
 
   const [done, setDone] = useState<{ report_id: string; average: number } | null>(null);
   const [goalkeeper, setGoalkeeper] = useState("");
-  const [coach, setCoach] = useState(user?.name ?? "");
+  const coach = user?.name ?? "";
+  const [competition, setCompetition] = useState("");
   const [team, setTeam] = useState("");
   const [opponent, setOpponent] = useState("");
   const [matchDate, setMatchDate] = useState(new Date().toISOString().slice(0, 10));
@@ -216,12 +221,7 @@ function ReportForm({ onDone }: { onDone: () => void }) {
   const [selectedMedia, setSelectedMedia] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
-
-  // Keep coach field synced with the signed-in user (non-managers only).
-  useEffect(() => {
-    if (!canOverrideCoach && user?.name) setCoach(user.name);
-  }, [canOverrideCoach, user?.name]);
+  const [, setFieldErrors] = useState<Record<string, string>>({});
 
   // ---------------- Draft persistence + versioning (localStorage) ----------------
   const [draftLoaded, setDraftLoaded] = useState(false);
@@ -238,12 +238,13 @@ function ReportForm({ onDone }: { onDone: () => void }) {
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const currentSnapshot = (): ReportDraftSnapshot => ({
-    goalkeeper, coach, team, opponent, matchDate, scores, comments, selectedMedia,
+    goalkeeper, coach, competition, team, opponent, matchDate, scores, comments, selectedMedia,
   });
 
   const applySnapshot = (d: ReportDraftSnapshot) => {
     setGoalkeeper(d.goalkeeper);
-    if (canOverrideCoach) setCoach(d.coach);
+    // coach is read-only, derived from the signed-in user — ignore d.coach
+    setCompetition(d.competition ?? "");
     setTeam(d.team);
     setOpponent(d.opponent);
     if (d.matchDate) setMatchDate(d.matchDate);
@@ -323,13 +324,13 @@ function ReportForm({ onDone }: { onDone: () => void }) {
     }, 5000);
     return () => { if (saveTimer.current) clearTimeout(saveTimer.current); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, draftLoaded, done, conflict, goalkeeper, coach, team, opponent, matchDate, scores, comments, selectedMedia]);
+  }, [user, draftLoaded, done, conflict, goalkeeper, coach, competition, team, opponent, matchDate, scores, comments, selectedMedia]);
 
   const discardDraft = () => {
     if (!user) return;
     clearDraft(user.id);
     setGoalkeeper("");
-    if (canOverrideCoach) setCoach(user.name);
+    setCompetition("");
     setTeam("");
     setOpponent("");
     setMatchDate(new Date().toISOString().slice(0, 10));
@@ -397,7 +398,7 @@ function ReportForm({ onDone }: { onDone: () => void }) {
       if (ms !== ts) rows.push({ key, label, mine: ms, theirs: ts });
     };
     push("goalkeeper", "Goalkeeper", mine.goalkeeper, other.goalkeeper);
-    push("coach", "Coach", mine.coach, other.coach);
+    push("competition", "Competition", mine.competition, other.competition);
     push("team", "Team", mine.team, other.team);
     push("opponent", "Opponent", mine.opponent, other.opponent);
     push("matchDate", "Match date", mine.matchDate, other.matchDate);
@@ -433,7 +434,7 @@ function ReportForm({ onDone }: { onDone: () => void }) {
       const pid = key.slice(6) as PillarId;
       setScores((prev) => ({ ...prev, [pid]: snap.scores[pid] }));
     } else if (key === "goalkeeper") setGoalkeeper(snap.goalkeeper);
-    else if (key === "coach") { if (canOverrideCoach) setCoach(snap.coach); }
+    else if (key === "competition") setCompetition(snap.competition);
     else if (key === "team") setTeam(snap.team);
     else if (key === "opponent") setOpponent(snap.opponent);
     else if (key === "matchDate") { if (snap.matchDate) setMatchDate(snap.matchDate); }
@@ -475,7 +476,7 @@ function ReportForm({ onDone }: { onDone: () => void }) {
         const pid = r.key.slice(6) as PillarId;
         if (conflict.scores?.[pid] != null) merged.scores[pid] = conflict.scores[pid];
       } else if (r.key === "goalkeeper") merged.goalkeeper = conflict.goalkeeper;
-      else if (r.key === "coach") merged.coach = conflict.coach;
+      else if (r.key === "competition") merged.competition = conflict.competition;
       else if (r.key === "team") merged.team = conflict.team;
       else if (r.key === "opponent") merged.opponent = conflict.opponent;
       else if (r.key === "matchDate") merged.matchDate = conflict.matchDate;
@@ -548,7 +549,7 @@ function ReportForm({ onDone }: { onDone: () => void }) {
   if (done) {
     return (
       <Submitted
-        message={`Submission sent to the RPM Match Reports Google Sheet · Average ${done.average.toFixed(1)}. This connection is transitional — successful persistence has not yet been verified in this environment.`}
+        message={`Match report submitted to the RPM Match Reports Google Sheet · Average ${done.average.toFixed(1)}.`}
         onDone={onDone}
       />
     );
@@ -559,17 +560,43 @@ function ReportForm({ onDone }: { onDone: () => void }) {
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Phase 1 safety: final submission is temporarily disabled while report
-    // storage is being verified. The Google Sheets serverFn (submitFn) and
-    // attachMediaToReport helper are intentionally NOT called from this path.
-    // Drafts continue to save locally. The full submission path remains in
-    // Git history and will be re-enabled once persistence is verified.
-    void submitFn;
+    if (submitting) return;
     void attachMediaToReport;
-    setError(
-      "Final submission is temporarily unavailable while report storage is being verified. Your draft is stored on this device only."
-    );
-    return;
+    setError(null);
+    setFieldErrors({});
+    setSubmitting(true);
+    try {
+      const finalComments = competition.trim()
+        ? `Competition: ${competition.trim()}${comments.trim() ? `\n\n${comments.trim()}` : ""}`
+        : comments;
+      const res = await submitFn({
+        data: {
+          payload: {
+            goalkeeper: goalkeeper.trim(),
+            coach: coach.trim(),
+            team: team.trim(),
+            opponent: opponent.trim(),
+            match_date: matchDate,
+            protect_goal: scores.protect_goal,
+            protect_space: scores.protect_space,
+            protect_air: scores.protect_air,
+            control_play: scores.control_play,
+            change_play: scores.change_play,
+            psych: scores.psych,
+            physical: scores.physical,
+            comments: finalComments,
+          },
+        },
+      });
+      if (user) clearDraft(user.id);
+      setDone({ report_id: res.report_id, average: res.average });
+      try { window.dispatchEvent(new CustomEvent("rpm:report-submitted", { detail: res })); } catch { /* ignore */ }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Submission failed. Please try again.";
+      setError(msg);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -583,21 +610,27 @@ function ReportForm({ onDone }: { onDone: () => void }) {
             {goalkeepers.map((g) => <option key={g.id} value={g.name} />)}
           </datalist>
         </Field>
-        <Field label={`Coach *${canOverrideCoach ? "" : " (you)"}`}>
-          <input className={inputCls} required value={coach} disabled={!canOverrideCoach}
-            list="mr-coach-suggestions"
-            onChange={(e) => setCoach(e.target.value)} maxLength={80} />
-          <datalist id="mr-coach-suggestions">
-            {mentors.map((m) => <option key={m.id} value={m.name} />)}
+        <Field label="Coach (you) *">
+          <input className={`${inputCls} opacity-80 cursor-not-allowed`} required readOnly disabled value={coach} maxLength={80} />
+        </Field>
+        <Field label="Competition *">
+          <input className={inputCls} required value={competition}
+            list="mr-competition-suggestions"
+            onChange={(e) => setCompetition(e.target.value)}
+            placeholder="e.g. EFL Championship" maxLength={80} />
+          <datalist id="mr-competition-suggestions">
+            {Array.from(new Set(goalkeepers.map((g) => g.league).filter(Boolean))).sort().map((l) => (
+              <option key={l} value={l} />
+            ))}
           </datalist>
         </Field>
         <Field label="Team *">
           <input className={inputCls} required value={team} onChange={(e) => setTeam(e.target.value)}
-            placeholder="e.g. England U21" maxLength={80} />
+            placeholder="e.g. Wolves" maxLength={80} />
         </Field>
         <Field label="Opponent *">
           <input className={inputCls} required value={opponent} onChange={(e) => setOpponent(e.target.value)}
-            placeholder="e.g. Moldova" maxLength={80} />
+            placeholder="e.g. Blackburn Rovers" maxLength={80} />
         </Field>
         <Field label="Match Date *">
           <input type="date" className={inputCls} required value={matchDate}
@@ -650,16 +683,9 @@ function ReportForm({ onDone }: { onDone: () => void }) {
           placeholder="What did you see? Key moments, strengths, areas to develop…" />
       </Field>
 
-      <MediaAttachPicker
-        gkId={goalkeepers.find((g) => g.name === goalkeeper)?.id ?? ""}
-        selected={selectedMedia}
-        onChange={setSelectedMedia}
-        user={user}
-      />
-
       {conflict && (() => {
         const mineSnap: ReportDraftSnapshot = preConflictLocalRef.current ?? {
-          goalkeeper, coach, team, opponent, matchDate, scores, comments, selectedMedia,
+          goalkeeper, coach, competition, team, opponent, matchDate, scores, comments, selectedMedia,
         };
         const rows = computeDiffRows(mineSnap, conflict);
         const resolvedCount = rows.reduce((n, r) => n + (resolutions[r.key] ? 1 : 0), 0);
@@ -813,13 +839,6 @@ function ReportForm({ onDone }: { onDone: () => void }) {
 
       {error && <div className="text-xs text-destructive flex items-start gap-1.5"><AlertCircle className="size-3.5 mt-0.5" />{error}</div>}
 
-      <div className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-[11px] leading-snug text-foreground/90">
-        <div className="font-semibold text-foreground">Final submission is temporarily unavailable</div>
-        <div className="opacity-90 mt-0.5">
-          Report storage is being verified. Your draft is stored on this device only — nothing has been submitted, queued, synced, or saved to RPM.
-        </div>
-      </div>
-
       <div className="flex items-center justify-between gap-2 pt-2 border-t border-border/60">
         <div className="text-[11px] flex items-center gap-2 min-h-6">
           {draftRestoredFrom && (
@@ -839,12 +858,11 @@ function ReportForm({ onDone }: { onDone: () => void }) {
           <button type="button" onClick={onDone} className="h-9 px-3 rounded-md border border-border text-sm" disabled={submitting}>Cancel</button>
           <button
             type="submit"
-            disabled
-            aria-disabled="true"
-            title="Final submission is temporarily unavailable while report storage is being verified."
-            className="h-9 px-4 rounded-md bg-primary text-primary-foreground text-sm font-medium opacity-50 cursor-not-allowed"
+            disabled={submitting || !!conflict}
+            className="h-9 px-4 rounded-md bg-primary text-primary-foreground text-sm font-medium disabled:opacity-60 inline-flex items-center gap-1.5"
           >
-            Submit Match Report (unavailable)
+            {submitting && <Loader2 className="size-3.5 animate-spin" />}
+            {submitting ? "Submitting…" : "Submit Match Report"}
           </button>
         </div>
       </div>
