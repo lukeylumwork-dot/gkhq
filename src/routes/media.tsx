@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { zodValidator, fallback } from "@tanstack/zod-adapter";
 import { z } from "zod";
-import { PageHeader, Card, Pill } from "@/components/primitives";
+import { PageHeader, Card, Pill, EmptyState } from "@/components/primitives";
 import { DataSourceBanner } from "@/lib/data-classification";
 import { goalkeepers, getGk, formatDate } from "@/lib/mock-data";
 import { Video, FileText, Image as ImageIcon, Mic, Upload, Trash2, ExternalLink, Pencil, Filter, X } from "lucide-react";
@@ -207,15 +207,35 @@ function MediaPage() {
       </Card>
 
       {!loading && assets.length === 0 ? (
-        <Card className="p-10 text-center text-sm text-muted-foreground">
-          {activeFilterCount > 0 ? (
-            <>
-              No media matches the current filters.{" "}
-              <button onClick={reset} className="text-primary underline-offset-2 hover:underline">Reset filters</button>
-            </>
-          ) : (
-            <>No media yet. {can("media.upload") ? "Click Upload to add the first clip, PDF, image or voice note." : "Ask an admin, mentor or scout to upload assets."}</>
-          )}
+        <Card>
+          <EmptyState
+            icon={activeFilterCount > 0 ? Filter : Video}
+            title={activeFilterCount > 0 ? "No media matches these filters" : "No media uploaded yet"}
+            description={
+              activeFilterCount > 0
+                ? "Try clearing filters or widening the date range to see more assets."
+                : can("media.upload")
+                  ? "Upload the first match clip, PDF report, image or voice note to build the library."
+                  : "Match clips, PDFs, images and voice notes uploaded by mentors and scouts will appear here."
+            }
+            primaryAction={
+              activeFilterCount > 0 ? (
+                <button
+                  onClick={reset}
+                  className="h-9 px-3 rounded-md bg-primary text-primary-foreground text-sm font-medium inline-flex items-center gap-1.5"
+                >
+                  <X className="size-3.5" /> Reset filters
+                </button>
+              ) : can("media.upload") ? (
+                <button
+                  onClick={() => setWorkflow("media")}
+                  className="h-9 px-3 rounded-md bg-primary text-primary-foreground text-sm font-medium inline-flex items-center gap-1.5"
+                >
+                  <Upload className="size-3.5" /> Upload media
+                </button>
+              ) : undefined
+            }
+          />
         </Card>
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">

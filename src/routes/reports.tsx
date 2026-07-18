@@ -3,10 +3,10 @@ import { zodValidator, fallback } from "@tanstack/zod-adapter";
 import { z } from "zod";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
-import { PageHeader, Card, Pill, SectionTitle } from "@/components/primitives";
+import { PageHeader, Card, Pill, SectionTitle, EmptyState } from "@/components/primitives";
 import { DataSourceBanner } from "@/lib/data-classification";
 import { useEffect, useMemo, useState } from "react";
-import { FileText, ChevronRight, RefreshCw, X } from "lucide-react";
+import { FileText, ChevronRight, RefreshCw, X, FilePlus2 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { WorkflowDialog, type WorkflowKind } from "@/components/workflows";
 import { withPermission } from "@/components/require-permission";
@@ -161,7 +161,50 @@ function ReportsPage() {
                 <tr><td colSpan={8} className="px-4 py-8 text-center text-muted-foreground">Loading…</td></tr>
               )}
               {!isLoading && filtered.length === 0 && (
-                <tr><td colSpan={8} className="px-4 py-8 text-center text-muted-foreground">No match reports yet.</td></tr>
+                <tr>
+                  <td colSpan={8} className="px-4 py-2">
+                    <EmptyState
+                      icon={FileText}
+                      title={hasFilters ? "No match reports match these filters" : "No match reports yet"}
+                      description={
+                        hasFilters
+                          ? "Try widening the date range or clearing the coach filter to see more results."
+                          : can("reports.submit")
+                            ? "Submit your first match report to start building the reporting record for this window."
+                            : "Match reports submitted by coaches will appear here."
+                      }
+                      primaryAction={
+                        hasFilters ? (
+                          <Link
+                            to="/reports"
+                            search={clearSearch}
+                            className="h-9 px-3 rounded-md bg-primary text-primary-foreground text-sm font-medium inline-flex items-center gap-1.5"
+                          >
+                            <X className="size-3.5" /> Clear filters
+                          </Link>
+                        ) : can("reports.submit") ? (
+                          <button
+                            onClick={() => setWorkflow("report")}
+                            className="h-9 px-3 rounded-md bg-primary text-primary-foreground text-sm font-medium inline-flex items-center gap-1.5"
+                          >
+                            <FilePlus2 className="size-3.5" /> Submit match report
+                          </button>
+                        ) : undefined
+                      }
+                      secondaryAction={
+                        hasFilters ? (
+                          <button
+                            onClick={() => refetch()}
+                            disabled={isFetching}
+                            className="h-9 px-3 rounded-md border border-border text-sm inline-flex items-center gap-1.5 disabled:opacity-60"
+                          >
+                            <RefreshCw className={`size-3.5 ${isFetching ? "animate-spin" : ""}`} /> Refresh
+                          </button>
+                        ) : undefined
+                      }
+                    />
+                  </td>
+                </tr>
               )}
               {filtered.slice(0, 100).map((r) => (
                 <tr key={r.report_id} className="border-b border-border/60 last:border-0 hover:bg-accent/20">

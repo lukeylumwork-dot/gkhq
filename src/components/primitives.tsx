@@ -1,4 +1,5 @@
-import type { ReactNode } from "react";
+import type { ComponentType, ReactNode } from "react";
+import { Inbox } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TIER_DEFINITIONS } from "@/lib/mock-data";
 import type { Tier, DutyLevel } from "@/lib/mock-data";
@@ -151,3 +152,40 @@ export function ProgressBar({ value, tone = "primary" }: { value: number; tone?:
     </div>
   );
 }
+
+export function EmptyState({
+  icon: Icon = Inbox,
+  title,
+  description,
+  primaryAction,
+  secondaryAction,
+  className,
+}: {
+  icon?: ComponentType<{ className?: string }>;
+  title: string;
+  description?: ReactNode;
+  primaryAction?: ReactNode;
+  secondaryAction?: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={cn("flex flex-col items-center justify-center gap-3 py-12 px-6 text-center", className)}>
+      <div className="size-12 rounded-full bg-muted grid place-items-center">
+        <Icon className="size-5 text-muted-foreground" />
+      </div>
+      <div className="max-w-sm">
+        <p className="text-sm font-semibold text-foreground">{title}</p>
+        {description && (
+          <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{description}</p>
+        )}
+      </div>
+      {(primaryAction || secondaryAction) && (
+        <div className="flex flex-wrap items-center justify-center gap-2 mt-1">
+          {primaryAction}
+          {secondaryAction}
+        </div>
+      )}
+    </div>
+  );
+}
+

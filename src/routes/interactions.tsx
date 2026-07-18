@@ -1,11 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { zodValidator, fallback } from "@tanstack/zod-adapter";
 import { z } from "zod";
-import { PageHeader, Card, Pill, Avatar } from "@/components/primitives";
+import { PageHeader, Card, Pill, Avatar, EmptyState } from "@/components/primitives";
 import { DataSourceBanner } from "@/lib/data-classification";
 import { interactions, getGk, getMentor, formatDate, formatRelative } from "@/lib/mock-data";
 import { useEffect, useMemo, useState } from "react";
-import { X } from "lucide-react";
+import { X, MessageSquarePlus, Filter } from "lucide-react";
 import { withPermission } from "@/components/require-permission";
 
 const interactionsSearchSchema = z.object({
@@ -98,6 +98,36 @@ function InteractionsPage() {
             </tr>
           </thead>
           <tbody>
+            {filtered.length === 0 && (
+              <tr>
+                <td colSpan={7} className="px-4 py-2">
+                  <EmptyState
+                    icon={hasFilters ? Filter : MessageSquarePlus}
+                    title={hasFilters ? "No interactions match these filters" : "No interactions logged yet"}
+                    description={
+                      hasFilters
+                        ? "Try broadening the date range, mentor or type filter to see more touchpoints."
+                        : "Log the first touchpoint — a call, meeting, match observation or WhatsApp exchange — to begin the interaction record."
+                    }
+                    primaryAction={
+                      hasFilters ? (
+                        <Link
+                          to="/interactions"
+                          search={clearSearch}
+                          className="h-9 px-3 rounded-md bg-primary text-primary-foreground text-sm font-medium inline-flex items-center gap-1.5"
+                        >
+                          <X className="size-3.5" /> Clear filters
+                        </Link>
+                      ) : (
+                        <button className="h-9 px-3 rounded-md bg-primary text-primary-foreground text-sm font-medium inline-flex items-center gap-1.5">
+                          <MessageSquarePlus className="size-3.5" /> Log interaction
+                        </button>
+                      )
+                    }
+                  />
+                </td>
+              </tr>
+            )}
             {filtered.slice(0, 80).map((i) => {
               const gk = getGk(i.gkId);
               const m = getMentor(i.mentorId);
@@ -114,6 +144,7 @@ function InteractionsPage() {
               );
             })}
           </tbody>
+
         </table>
       </Card>
     </div>
