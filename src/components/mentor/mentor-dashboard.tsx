@@ -115,7 +115,6 @@ export function MentorDashboard({ user }: Props) {
         </Link>
         <Link
           to="/reports"
-          search={{ filter: "overdue" } as never}
           className="block rounded-lg transition-transform hover:-translate-y-0.5 hover:ring-1 hover:ring-destructive/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive"
           aria-label="View outstanding actions"
         >
