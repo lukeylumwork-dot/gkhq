@@ -13,6 +13,10 @@ import {
   type Rpm7Scores,
   type WellbeingFlag,
 } from "@/lib/mentor-domain";
+import {
+  ALLOWED_INTERACTION_TYPES,
+  InvalidInteractionTypeError,
+} from "@/lib/mentor-session-store";
 import { Avatar } from "@/components/primitives";
 
 // -----------------------------------------------------------------------------
@@ -33,12 +37,7 @@ const SUBTITLES: Record<MentorWorkflow, string> = {
   voice: "Paste or type a transcript. We'll turn it into an interaction.",
 };
 
-const INTERACTION_TYPES = [
-  "Live Match Observation",
-  "Training Ground Visit",
-  "Coffee Catch Up",
-  "Phone Call",
-];
+const INTERACTION_TYPES: readonly string[] = ALLOWED_INTERACTION_TYPES;
 
 const OUTCOMES = [
   "On track",
@@ -324,24 +323,35 @@ function InteractionForm({
     );
   }
 
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!canSubmit) return;
-    insertMentorInteractionRow({
-      player_id: gkId,
-      mentor_profile_id: mentorProfileId,
-      interaction_type: type,
-      occurred_at: new Date(date).toISOString(),
-      notes: summary.trim(),
-      outcome,
-      follow_up: followUpRequired ? nextAction.trim() : "",
-      wellbeing_flag: wellbeing,
-      follow_up_required: followUpRequired,
-      next_action: followUpRequired ? nextAction.trim() : undefined,
-      transcript_source: transcriptSource,
-    });
-    setSubmitted({ playerId: gkId });
-    setDone(true);
+    try {
+      insertMentorInteractionRow({
+        player_id: gkId,
+        mentor_profile_id: mentorProfileId,
+        interaction_type: type,
+        occurred_at: new Date(date).toISOString(),
+        notes: summary.trim(),
+        outcome,
+        follow_up: followUpRequired ? nextAction.trim() : "",
+        wellbeing_flag: wellbeing,
+        follow_up_required: followUpRequired,
+        next_action: followUpRequired ? nextAction.trim() : undefined,
+        transcript_source: transcriptSource,
+      });
+      setSubmitError(null);
+      setSubmitted({ playerId: gkId });
+      setDone(true);
+    } catch (err) {
+      if (err instanceof InvalidInteractionTypeError) {
+        setSubmitError(err.message);
+        return;
+      }
+      throw err;
+    }
   };
 
   return (
@@ -350,6 +360,11 @@ function InteractionForm({
         <button type="button" onClick={onBack} className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
           <ArrowLeft className="size-3.5" /> Back to transcript
         </button>
+      )}
+      {submitError && (
+        <div role="alert" className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+          {submitError}
+        </div>
       )}
       <Field label="Player" required>
         <PlayerPicker mentorProfileId={mentorProfileId} value={gkId} onChange={setGkId} required={!playerId} />
