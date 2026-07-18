@@ -141,7 +141,15 @@ function MediaPage() {
   return (
     <div className="space-y-5">
       <PageHeader
-        title="Media Library"
+        breadcrumbs={
+          navSource
+            ? [
+                { label: "Dashboard", to: "/" },
+                { label: navSource.label },
+              ]
+            : undefined
+        }
+        title={navSource?.title ?? "Media Library"}
         description={loading ? "Loading…" : `${assets.length} asset${assets.length === 1 ? "" : "s"} matching filters.`}
         action={can("media.upload") ? (
           <button onClick={() => setWorkflow("media")} className="h-9 px-3 rounded-md bg-primary text-primary-foreground text-sm font-medium inline-flex items-center gap-1.5">
