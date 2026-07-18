@@ -12,6 +12,7 @@ import { WorkflowDialog, type WorkflowKind } from "@/components/workflows";
 import { withPermission } from "@/components/require-permission";
 import { listMatchReports } from "@/lib/match-reports/reports.functions";
 import type { MatchReportRow } from "@/lib/match-reports/schema";
+import { getNavSource } from "@/lib/nav-source";
 
 const reportsSearchSchema = z.object({
   from: fallback(z.string(), "").default(""),
