@@ -14,7 +14,7 @@ function Dashboard() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!user) navigate({ to: "/login", replace: true });
+    if (!user) navigate({ to: "/login", search: { next: "/" }, replace: true });
   }, [user, navigate]);
 
   if (!user) return null;
