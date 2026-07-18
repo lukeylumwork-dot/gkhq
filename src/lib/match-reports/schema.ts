@@ -49,6 +49,7 @@ export const COLUMN_INDEX = {
   physical: 11,
   average: 12,
   comments: 13,
+  competition: 14,
 } as const;
 
 export const SHEET_HEADERS = [
@@ -66,6 +67,7 @@ export const SHEET_HEADERS = [
   "Speed, Agility, Athleticism",
   "Av Score",
   "Comments",
+  "Competition",
 ];
 
 export const pillarScore = z
