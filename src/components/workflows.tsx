@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { X, CheckCircle2, Upload, AlertCircle, Paperclip, Search, Trash2, Loader2 } from "lucide-react";
-import { goalkeepers, mentors } from "@/lib/mock-data";
+import { goalkeepers } from "@/lib/mock-data";
 import { useAuth, type SessionUser } from "@/lib/auth";
 import {
   ACCEPT_BY_KIND, MAX_FILE_BYTES, detectKind, formatBytes, uploadMedia,
