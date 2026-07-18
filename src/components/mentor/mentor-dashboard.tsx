@@ -251,6 +251,7 @@ export function MentorDashboard({ user }: Props) {
                 const toneClass = isReport
                   ? "bg-destructive/15 text-destructive border-destructive/30"
                   : "bg-warning/15 text-warning border-warning/30";
+                const actionHref = isReport ? "/reports" : "/media";
                 const actionSearch = isReport
                   ? { from: "", to: "", coach: mentorName ?? "", mentorProfileId: effectiveMentorId }
                   : { from: "", to: "", uploaderName: mentorName ?? "", mentorProfileId: effectiveMentorId, kind: "video" };
