@@ -34,7 +34,8 @@ function formatDate(iso: string | null) {
 
 function ReportsPage() {
   const { can } = useAuth();
-  const { from, to, coach } = Route.useSearch();
+  const { from, to, coach, source } = Route.useSearch();
+  const navSource = getNavSource(source);
   const [workflow, setWorkflow] = useState<WorkflowKind | null>(null);
   const [coachFilter, setCoachFilter] = useState<string>(coach || "All");
   const router = useRouter();
