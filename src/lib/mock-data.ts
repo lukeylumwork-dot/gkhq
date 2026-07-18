@@ -51,11 +51,8 @@ export type InteractionType =
   | "Live Match Observation"
   | "Training Ground Visit"
   | "Face to Face"
-  | "Video Review Session"
-  | "Phone Call"
-  | "WhatsApp Feedback"
-  | "Development Meeting"
-  | "Scouting Assignment";
+  | "Phone Call";
+
 
 export type ReportType =
   | "Goalkeeper Development"
