@@ -123,7 +123,7 @@ export function MentorDashboard({ user }: Props) {
   const periodSearch = useMemo(() => lastNDaysSearch(rangeDays), [rangeDays]);
   const effectiveMentorId = data?.mentorProfileId ?? user.mentorId ?? "";
   const reportsSearch = { ...periodSearch, coach: mentorName ?? "", mentorProfileId: effectiveMentorId };
-  const interactionsSearch = { ...periodSearch, mentorId: effectiveMentorId, type: "" };
+  const interactionsSearch = { ...periodSearch, mentorId: effectiveMentorId, type: filters.length === 1 ? filters[0]! : "" };
   const mediaSearch = { ...periodSearch, uploaderName: mentorName ?? "", mentorProfileId: effectiveMentorId, kind: "video" };
   const outstandingSearch = { ...periodSearch, coach: mentorName ?? "", mentorProfileId: effectiveMentorId };
 
