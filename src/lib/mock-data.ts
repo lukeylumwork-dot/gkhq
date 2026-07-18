@@ -9,6 +9,10 @@ export type Tier = Status;
 
 export type Region = "UK Based" | "Overseas" | "Free Agent";
 
+// RPM roster is grouped into four tiers. Detailed rules are managed
+// separately; the placeholder mapping in deriveTierLevel() is league-based.
+export type TierLevel = 1 | 2 | 3 | 4;
+
 export type InteractionType =
   | "Live Match Observation"
   | "Training Ground Visit"
