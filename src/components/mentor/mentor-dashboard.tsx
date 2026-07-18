@@ -81,7 +81,7 @@ function interactionGroupLabel(date: string) {
 
 const groupOrder = ["Today", "Tomorrow", "This week", "Next week", "Later"] as const;
 
-const PLANNED_TYPE_OPTIONS = ["Coffee Meeting", "Attend Live Match", "Training Ground Visit"] as const;
+const PLANNED_TYPE_OPTIONS = ["Coffee Catch Up", "Attend Live Match", "Training Ground Visit"] as const;
 
 export function MentorDashboard({ user }: Props) {
   const [rangeDays, setRangeDays] = useState(14);

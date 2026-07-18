@@ -34,13 +34,10 @@ const SUBTITLES: Record<MentorWorkflow, string> = {
 };
 
 const INTERACTION_TYPES = [
-  "Face to face",
-  "Phone call",
-  "Video review",
-  "Live match observation",
-  "Training visit",
-  "WhatsApp / message",
-  "Wellbeing check-in",
+  "Live Match Observation",
+  "Training Ground Visit",
+  "Coffee Catch Up",
+  "Phone Call",
 ];
 
 const OUTCOMES = [

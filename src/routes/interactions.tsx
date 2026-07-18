@@ -27,7 +27,7 @@ const TYPES = ["All", "Live Match Observation", "Training Ground Visit", "Coffee
 const PLANNED_TO_TYPE: Record<string, (typeof TYPES)[number]> = {
   "Attend Live Match": "Live Match Observation",
   "Training Ground Visit": "Training Ground Visit",
-  "Coffee Meeting": "Coffee Catch Up",
+  "Coffee Catch Up": "Coffee Catch Up",
 };
 
 function resolveType(param: string): (typeof TYPES)[number] {
@@ -118,7 +118,7 @@ function InteractionsPage() {
                     description={
                       hasFilters
                         ? "Try broadening the date range, mentor or type filter to see more touchpoints."
-                        : "Log the first touchpoint — a call, meeting, match observation or WhatsApp exchange — to begin the interaction record."
+                        : "Log the first touchpoint — a call, coffee catch up, or match observation — to begin the interaction record."
                     }
                     primaryAction={
                       hasFilters ? (
