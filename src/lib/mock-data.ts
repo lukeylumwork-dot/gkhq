@@ -13,6 +13,40 @@ export type Region = "UK Based" | "Overseas" | "Free Agent";
 // separately; the placeholder mapping in deriveTierLevel() is league-based.
 export type TierLevel = 1 | 2 | 3 | 4;
 
+export interface TierDefinition {
+  level: TierLevel;
+  label: string;
+  summary: string;
+  leagues: readonly string[];
+}
+
+export const TIER_DEFINITIONS: TierDefinition[] = [
+  {
+    level: 1,
+    label: "Elite senior",
+    summary: "First-team regulars at the highest domestic level (Premier League).",
+    leagues: ["Premier League"],
+  },
+  {
+    level: 2,
+    label: "High-level pro",
+    summary: "Established professionals in top second tiers and major overseas leagues.",
+    leagues: ["EFL Championship", "Serie A", "MLS"],
+  },
+  {
+    level: 3,
+    label: "Pro / developing",
+    summary: "League One and comparable overseas first divisions.",
+    leagues: ["EFL League One", "SPFL Premiership", "Danish Superliga", "Allsvenskan", "UAE Pro League", "Australian A League"],
+  },
+  {
+    level: 4,
+    label: "Emerging / lower tier",
+    summary: "League Two, National Premier and other developing leagues.",
+    leagues: ["EFL League Two", "Australian Nat Prem", "League of Ireland"],
+  },
+];
+
 export type InteractionType =
   | "Live Match Observation"
   | "Training Ground Visit"

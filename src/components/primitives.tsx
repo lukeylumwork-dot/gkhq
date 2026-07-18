@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { TIER_DEFINITIONS } from "@/lib/mock-data";
 import type { Tier, DutyLevel } from "@/lib/mock-data";
 
 export function TrafficLight({ level, size = 10 }: { level: DutyLevel; size?: number }) {
@@ -89,6 +90,25 @@ export function TierLevelBadge({ level }: { level: 1 | 2 | 3 | 4 }) {
     <span className={cn("inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium border whitespace-nowrap tabular-nums", styles[level])}>
       Tier {level}
     </span>
+  );
+}
+
+export function TierLegend() {
+  return (
+    <Card className="p-4">
+      <SectionTitle>Tier Legend</SectionTitle>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        {TIER_DEFINITIONS.map((t) => (
+          <div key={t.level} className="p-3 rounded-md border border-border bg-background/50">
+            <div className="flex items-center gap-2 mb-1">
+              <TierLevelBadge level={t.level} />
+              <span className="text-xs font-medium text-foreground">{t.label}</span>
+            </div>
+            <p className="text-[11px] leading-snug text-muted-foreground">{t.summary}</p>
+          </div>
+        ))}
+      </div>
+    </Card>
   );
 }
 
