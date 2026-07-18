@@ -59,6 +59,7 @@ export interface Goalkeeper {
   initials: string;
   status: Status;
   tier: Status; // alias for back-compat
+  tierLevel: TierLevel;
   region: Region;
   mentorId: string;
   club: string;
