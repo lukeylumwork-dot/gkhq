@@ -136,6 +136,21 @@ export function MentorDashboard({ user }: Props) {
 
   const clearFilters = () => setFilters([]);
 
+  const trackClick = (source: string, destination: string) => {
+    void logDashboardClick({
+      data: {
+        source,
+        destination,
+        periodDays: rangeDays,
+        periodFrom: periodSearch.from,
+        periodTo: periodSearch.to,
+        mentorProfileId: effectiveMentorId || undefined,
+        mentorName: mentorName || undefined,
+        effectiveRole: user.role,
+      },
+    }).catch(() => {});
+  };
+
   return (
     <div className="space-y-6">
       <header>
