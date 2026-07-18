@@ -305,6 +305,7 @@ export function MentorDashboard({ user }: Props) {
                     <Link
                       to={actionHref}
                       search={actionSearch}
+                      onClick={() => trackClick(isReport ? "outstanding-report" : "outstanding-clip", actionHref)}
                       className="shrink-0 text-xs px-2.5 py-1.5 rounded-md border border-border hover:bg-accent/40 text-primary inline-flex items-center gap-1"
                     >
                       {isReport ? "Submit report" : "Upload clip"}
