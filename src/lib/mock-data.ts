@@ -284,6 +284,12 @@ function deriveRegion(s: Seed): Region {
   if (s.league === "Free Agent") return "Free Agent";
   return OVERSEAS_LEAGUES.has(s.league) ? "Overseas" : "UK Based";
 }
+function deriveTierLevel(s: Seed): TierLevel {
+  if (s.league === "Premier League") return 1;
+  if (s.league === "EFL Championship" || s.league === "Serie A" || s.league === "MLS") return 2;
+  if (s.league === "EFL League One" || s.league === "SPFL Premiership" || s.league === "Danish Superliga" || s.league === "Allsvenskan" || s.league === "UAE Pro League" || s.league === "Australian A League") return 3;
+  return 4;
+}
 function contractISO(c: string): string {
   if (c === "—") return "—";
   // "June 2028" / "December 2026" / "January 2026"
