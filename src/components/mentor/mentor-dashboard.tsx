@@ -48,8 +48,10 @@ export function MentorDashboard({ user }: Props) {
 
   const firstName = user.name.split(" ")[0];
   const upcoming = data?.upcomingList ?? [];
+  const outstanding = data?.outstandingItems ?? [];
   const updatedAt = data?.lastUpdatedAt ? formatRelativeTime(data.lastUpdatedAt) : undefined;
   const period = "Last 14 days";
+  const [showOutstanding, setShowOutstanding] = useState(false);
 
   return (
     <div className="space-y-6">
