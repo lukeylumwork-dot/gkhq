@@ -566,14 +566,12 @@ function ReportForm({ onDone }: { onDone: () => void }) {
     setFieldErrors({});
     setSubmitting(true);
     try {
-      const finalComments = competition.trim()
-        ? `Competition: ${competition.trim()}${comments.trim() ? `\n\n${comments.trim()}` : ""}`
-        : comments;
       const res = await submitFn({
         data: {
           payload: {
             goalkeeper: goalkeeper.trim(),
             coach: coach.trim(),
+            competition: competition.trim(),
             team: team.trim(),
             opponent: opponent.trim(),
             match_date: matchDate,
