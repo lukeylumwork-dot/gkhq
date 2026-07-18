@@ -398,7 +398,7 @@ function ReportForm({ onDone }: { onDone: () => void }) {
       if (ms !== ts) rows.push({ key, label, mine: ms, theirs: ts });
     };
     push("goalkeeper", "Goalkeeper", mine.goalkeeper, other.goalkeeper);
-    push("coach", "Coach", mine.coach, other.coach);
+    push("competition", "Competition", mine.competition, other.competition);
     push("team", "Team", mine.team, other.team);
     push("opponent", "Opponent", mine.opponent, other.opponent);
     push("matchDate", "Match date", mine.matchDate, other.matchDate);
