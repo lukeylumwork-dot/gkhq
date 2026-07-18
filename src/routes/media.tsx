@@ -14,6 +14,7 @@ import {
   type MediaAsset, type MediaKind, type MediaFilters,
 } from "@/lib/media-store";
 import { withPermission } from "@/components/require-permission";
+import { getNavSource } from "@/lib/nav-source";
 
 const mediaSearchSchema = z.object({
   from: fallback(z.string(), "").default(""),
@@ -21,6 +22,7 @@ const mediaSearchSchema = z.object({
   uploaderName: fallback(z.string(), "").default(""),
   mentorProfileId: fallback(z.string(), "").default(""),
   kind: fallback(z.string(), "").default(""),
+  source: fallback(z.string(), "").default(""),
 });
 
 export const Route = createFileRoute("/media")({
