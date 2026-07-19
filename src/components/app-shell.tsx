@@ -65,7 +65,8 @@ export function AppShell() {
       <div className="flex flex-1 flex-col min-w-0">
         <header className="h-14 flex items-center gap-3 px-4 md:px-6 border-b border-border bg-sidebar/95 backdrop-blur sticky top-0 z-10">
           <div className="flex items-center gap-2.5 shrink-0">
-            <img src="/wordmark.png" alt="GKHQ" height={26} className="h-[26px] w-auto" />
+            <img src="/app-icon-120.png" alt="GKHQ" width={28} height={28} className="size-7 rounded-[6px]" />
+            <span className="hidden sm:inline font-display uppercase tracking-[0.04em] font-bold text-sm">GKHQ</span>
           </div>
           <div className="flex-1" />
 
