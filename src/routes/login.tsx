@@ -62,13 +62,10 @@ function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-6">
       <div className="w-full max-w-md">
-        <div className="flex items-center gap-3 mb-10">
-          <img src="/app-icon-120.png" alt="GKHQ" width={40} height={40} className="size-10 rounded-[8px]" />
-          <div className="flex flex-col leading-tight">
-            <img src="/wordmark.png" alt="GKHQ" height={22} className="h-[22px] w-auto" />
-            <div className="text-[11px] uppercase tracking-wider text-muted-foreground mt-1">GKHQ by RPM</div>
-          </div>
+        <div className="mb-10">
+          <img src="/gkhq-lockup.svg" alt="GK.HQ by RPM" className="h-16 w-auto" />
         </div>
+
 
         {view === "signin" && (
           <>
