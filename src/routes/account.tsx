@@ -132,23 +132,71 @@ function AccountPage() {
               required
             />
           </div>
-          <div className="space-y-1.5">
+          <div className="space-y-2">
             <label className="block text-xs uppercase tracking-[0.06em] text-muted-foreground">New password</label>
             <input
               type={show ? "text" : "password"}
               autoComplete="new-password"
               value={pw}
               onChange={(e) => { setPw(e.target.value); setOk(false); }}
-              className="w-full h-10 px-3 rounded-md bg-input/60 border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+              aria-invalid={tooShort || sameAsCurrent || undefined}
+              className="w-full h-10 px-3 rounded-md bg-input/60 border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 aria-invalid:border-destructive/70"
               placeholder="At least 8 characters"
               required
               minLength={8}
             />
-            {tooShort && <p className="text-[11px] text-warning">Must be at least 8 characters.</p>}
+
+            {pw.length > 0 && (
+              <div className="space-y-2 pt-1">
+                <div className="flex gap-1" aria-hidden="true">
+                  {[0, 1, 2, 3].map((i) => (
+                    <div
+                      key={i}
+                      className={`h-1 flex-1 rounded-full transition-colors ${
+                        i < strength ? LEVELS[strength].bar : "bg-border/70"
+                      }`}
+                    />
+                  ))}
+                </div>
+                <div className="flex items-center justify-between text-[11px]">
+                  <span className={LEVELS[strength].className}>
+                    Strength: {LEVELS[strength].label}
+                  </span>
+                  <span className="text-muted-foreground">{pw.length} chars</span>
+                </div>
+                <ul className="grid grid-cols-2 gap-x-3 gap-y-1 text-[11px]">
+                  {RULES.map((r) => {
+                    const passed = r.test(pw);
+                    return (
+                      <li
+                        key={r.id}
+                        className={`flex items-center gap-1.5 ${
+                          passed ? "text-gk-green" : "text-muted-foreground"
+                        }`}
+                      >
+                        {passed ? <Check className="size-3" /> : <X className="size-3 opacity-60" />}
+                        <span>{r.label}</span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
+
+            {tooShort && (
+              <p className="flex items-center gap-1 text-[11px] text-destructive">
+                <AlertCircle className="size-3" />
+                Password must be at least 8 characters.
+              </p>
+            )}
             {sameAsCurrent && !tooShort && (
-              <p className="text-[11px] text-warning">New password must differ from your current one.</p>
+              <p className="flex items-center gap-1 text-[11px] text-destructive">
+                <AlertCircle className="size-3" />
+                New password must differ from your current password.
+              </p>
             )}
           </div>
+
           <div className="space-y-1.5">
             <label className="block text-xs uppercase tracking-[0.06em] text-muted-foreground">Confirm new password</label>
             <input
@@ -156,11 +204,22 @@ function AccountPage() {
               autoComplete="new-password"
               value={confirm}
               onChange={(e) => { setConfirm(e.target.value); setOk(false); }}
-              className="w-full h-10 px-3 rounded-md bg-input/60 border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+              aria-invalid={mismatch || undefined}
+              className="w-full h-10 px-3 rounded-md bg-input/60 border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 aria-invalid:border-destructive/70"
               placeholder="Repeat new password"
               required
             />
-            {mismatch && <p className="text-[11px] text-destructive">Passwords do not match.</p>}
+            {mismatch ? (
+              <p className="flex items-center gap-1 text-[11px] text-destructive">
+                <AlertCircle className="size-3" />
+                Passwords do not match.
+              </p>
+            ) : confirm.length > 0 && pw.length > 0 && !mismatch ? (
+              <p className="flex items-center gap-1 text-[11px] text-gk-green">
+                <Check className="size-3" />
+                Passwords match.
+              </p>
+            ) : null}
           </div>
           <div className="flex items-center justify-between pt-1">
             <label className="flex items-center gap-2 text-xs text-muted-foreground select-none">
