@@ -122,13 +122,13 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
   const clearAll = () => { setItems([]); persist(STORAGE_KEY, []); };
 
   const sendSummaryNow = () => {
-    const ambers = items.filter((i) => i.to === "amber").length;
+    const attn = items.filter((i) => i.to === "overdue" || i.to === "due_soon").length;
     const recipients = prefs.recipients.filter(Boolean);
     if (!recipients.length) { toast.error("Add at least one recipient first"); return; }
     const next = { ...prefs, lastSent: new Date().toISOString() };
     setPrefs(next);
     toast.success("Duty-of-care summary queued", {
-      description: `${ambers} amber · delivered to ${recipients.join(", ")}`,
+      description: `${attn} needing attention · delivered to ${recipients.join(", ")}`,
     });
   };
 
