@@ -253,6 +253,18 @@ function SystemUsersPage() {
                       Edit roles
                     </button>
                     <button
+                      onClick={() => setConfirmReset(u)}
+                      disabled={isSelf || (resetMutation.isPending && resetMutation.variables?.id === u.id)}
+                      title={isSelf ? "You can't reset your own password from this screen" : "Reset password"}
+                      className="size-8 grid place-items-center rounded-md border border-border text-muted-foreground hover:bg-accent disabled:opacity-30 disabled:cursor-not-allowed"
+                    >
+                      {resetMutation.isPending && resetMutation.variables?.id === u.id ? (
+                        <Loader2 className="size-4 animate-spin" />
+                      ) : (
+                        <KeyRound className="size-4" />
+                      )}
+                    </button>
+                    <button
                       onClick={() => setConfirmDelete(u)}
                       disabled={isSelf}
                       title={isSelf ? "You can't delete your own account" : "Delete user"}
