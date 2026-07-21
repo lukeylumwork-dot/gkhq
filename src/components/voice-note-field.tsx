@@ -414,6 +414,28 @@ export function VoiceNoteField({ onTranscribed, onAudioAttach, draft, onDraftCha
                   Discard
                 </button>
               </div>
+              {attemptLog.length > 0 && (
+                <div className="border-t border-destructive/20 pt-2">
+                  <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5">
+                    <History className="size-3" />Transcription attempts log
+                  </div>
+                  <ul className="space-y-1">
+                    {attemptLog.map((entry, i) => (
+                      <li key={entry.id} className="flex items-start gap-2 text-[11px]">
+                        <span className="text-muted-foreground font-mono tabular-nums">{i + 1}.</span>
+                        <span className="text-muted-foreground font-mono tabular-nums">{new Date(entry.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}</span>
+                        <span className={`shrink-0 inline-flex items-center gap-1 px-1 rounded-sm ${entry.status === "success" ? "bg-gk-green/20 text-gk-green" : entry.status === "error" ? "bg-destructive/20 text-destructive" : "bg-primary/20 text-primary"}`}>
+                          {entry.status === "success" && <CheckCircle2 className="size-3" />}
+                          {entry.status === "error" && <AlertTriangle className="size-3" />}
+                          {entry.status === "started" && <Loader2 className="size-3 animate-spin" />}
+                          {entry.status === "success" ? "Success" : entry.status === "error" ? "Failed" : "Started"}
+                        </span>
+                        {entry.message && <span className="text-muted-foreground truncate max-w-[180px]" title={entry.message}>{entry.message}</span>}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
           ) : transcript ? (
 
