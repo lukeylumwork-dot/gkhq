@@ -1,7 +1,7 @@
 import { createFileRoute, Link, Outlet, useRouterState } from "@tanstack/react-router";
 import { PageHeader, Card, TierBadge, Avatar, TrafficLight, DutyBadge, StatCard } from "@/components/primitives";
 import { DataSourceBanner } from "@/lib/data-classification";
-import { goalkeepers, getMentor, formatRelative, dutyStatusForGk, dutyOverview } from "@/lib/mock-data";
+import { goalkeepers, formatRelative, dutyStatusForGk, dutyOverview } from "@/lib/mock-data";
 import { useState } from "react";
 import { withPermission } from "@/components/require-permission";
 
@@ -77,7 +77,6 @@ function GoalkeepersList() {
               <th className="font-medium px-2 py-2.5">League</th>
               <th className="font-medium px-2 py-2.5">Age</th>
               <th className="font-medium px-2 py-2.5">Nationality</th>
-              <th className="font-medium px-2 py-2.5">Mentor</th>
               <th className="font-medium px-2 py-2.5">Contract</th>
               <th className="font-medium px-2 py-2.5">Duty of Care</th>
               <th className="font-medium px-4 py-2.5 text-right">Rating</th>
@@ -85,7 +84,6 @@ function GoalkeepersList() {
           </thead>
           <tbody>
             {filtered.map((gk) => {
-              const m = getMentor(gk.mentorId);
               const d = dutyStatusForGk(gk);
               return (
                 <tr key={gk.id} className="border-b border-border/60 last:border-0 hover:bg-accent/20 transition-colors">
@@ -101,7 +99,6 @@ function GoalkeepersList() {
                   <td className="px-2 text-muted-foreground text-xs">{gk.league}</td>
                   <td className="px-2 tabular-nums font-mono">{gk.age}</td>
                   <td className="px-2 text-muted-foreground">{gk.nationality}</td>
-                  <td className="px-2 text-muted-foreground">{m?.name}</td>
                   <td className="px-2 text-muted-foreground tabular-nums font-mono">{gk.contractUntil === "—" ? "—" : gk.contractUntil.slice(0, 4)}</td>
                   <td className="px-2">
                     <div className="flex items-center gap-2">
