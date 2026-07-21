@@ -114,6 +114,13 @@ export function VoiceNoteField({ onTranscribed, onAudioAttach, draft, onDraftCha
     durationRef.current = 0;
     setAttached(false);
     setElapsed(0);
+    setRestoredFromDraft(false);
+  };
+    dataUrlRef.current = null;
+    blobRef.current = null;
+    durationRef.current = 0;
+    setAttached(false);
+    setElapsed(0);
   };
 
   const enterPhase = (p: Exclude<Phase, "idle">) => {
