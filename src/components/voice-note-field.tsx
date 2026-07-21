@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { Mic, Square, Loader2, X, RotateCcw, Sparkles, CheckCircle2, AlertTriangle } from "lucide-react";
+import { Mic, Square, Loader2, X, RotateCcw, Sparkles, CheckCircle2, AlertTriangle, History } from "lucide-react";
 import { toast } from "sonner";
 import { transcribeVoiceNote } from "@/lib/api/transcribe.functions";
 
@@ -31,6 +31,13 @@ interface VoiceDraft {
   reviewed: boolean;
 }
 
+interface AttemptLogEntry {
+  id: string;
+  timestamp: number;
+  status: "started" | "success" | "error";
+  message?: string;
+}
+
 interface Props {
   onTranscribed: (text: string, mode: "replace" | "append") => void;
   onAudioAttach?: (audio: { blob: Blob; mimeType: string; durationSec: number }) => void | Promise<void>;
@@ -53,6 +60,7 @@ export function VoiceNoteField({ onTranscribed, onAudioAttach, draft, onDraftCha
   const [elapsed, setElapsed] = useState(0);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
+  const [attemptLog, setAttemptLog] = useState<AttemptLogEntry[]>([]);
   const [restoredFromDraft, setRestoredFromDraft] = useState<boolean>(!!draft?.transcript);
 
   const recorderRef = useRef<MediaRecorder | null>(null);
@@ -111,6 +119,7 @@ export function VoiceNoteField({ onTranscribed, onAudioAttach, draft, onDraftCha
     setPhase("idle");
     setPhaseElapsed(0);
     setAttempt(0);
+    setAttemptLog([]);
     dataUrlRef.current = null;
     blobRef.current = null;
     durationRef.current = 0;
@@ -126,12 +135,17 @@ export function VoiceNoteField({ onTranscribed, onAudioAttach, draft, onDraftCha
     phaseTimerRef.current = setInterval(() => setPhaseElapsed((s) => s + 1), 1000);
   };
 
+  const logAttempt = (status: AttemptLogEntry["status"], message?: string) => {
+    setAttemptLog((prev) => [...prev, { id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, timestamp: Date.now(), status, message }]);
+  };
+
   const transcribe = async (dataUrl: string) => {
     setErrorMsg(null);
     setReviewed(false);
     setTranscript(null);
     setTokens([]);
     setAvgConfidence(null);
+    logAttempt("started");
     const controller = new AbortController();
     abortRef.current = controller;
     enterPhase("uploading");
@@ -147,11 +161,14 @@ export function VoiceNoteField({ onTranscribed, onAudioAttach, draft, onDraftCha
       });
       if (controller.signal.aborted) return;
       if (!result.ok) {
-        setErrorMsg(result.error || "Transcription failed.");
+        const msg = result.error || "Transcription failed.";
+        setErrorMsg(msg);
+        logAttempt("error", msg);
       } else {
         setTranscript(result.text);
         setTokens(result.tokens ?? []);
         setAvgConfidence(result.avgConfidence ?? null);
+        logAttempt("success");
         toast.success("Voice note transcribed — review before applying");
       }
     } catch (e) {
@@ -159,7 +176,9 @@ export function VoiceNoteField({ onTranscribed, onAudioAttach, draft, onDraftCha
         // Silent — user-initiated cancel.
         return;
       }
-      setErrorMsg(e instanceof Error ? e.message : "Transcription failed. Check your connection and try again.");
+      const msg = e instanceof Error ? e.message : "Transcription failed. Check your connection and try again.";
+      setErrorMsg(msg);
+      logAttempt("error", msg);
     } finally {
       clearTimeout(flipTimer);
       clearPhaseTimer();
@@ -371,6 +390,22 @@ export function VoiceNoteField({ onTranscribed, onAudioAttach, draft, onDraftCha
                 })}
               </div>
               <p className="text-[10px] text-muted-foreground">Your recording is preserved — cancel any time to keep the audio and retry later.</p>
+              {attemptLog.length > 1 && (
+                <div className="pt-1 border-t border-border">
+                  <div className="flex items-center gap-1 text-[10px] text-muted-foreground mb-1">
+                    <History className="size-3" />Previous attempts: {attemptLog.length - 1}
+                  </div>
+                  <div className="flex flex-wrap gap-1">
+                    {attemptLog.slice(0, -1).map((entry, i) => (
+                      <span key={entry.id} className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-sm text-[10px] ${entry.status === "error" ? "bg-destructive/15 text-destructive" : entry.status === "success" ? "bg-gk-green/15 text-gk-green" : "bg-primary/15 text-primary"}`}>
+                        {i + 1}. {new Date(entry.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+                        {entry.status === "error" && <AlertTriangle className="size-3" />}
+                        {entry.status === "success" && <CheckCircle2 className="size-3" />}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           ) : errorMsg ? (
             <div className="rounded-md border border-destructive/40 bg-destructive/5 p-2.5 space-y-2">
@@ -395,6 +430,28 @@ export function VoiceNoteField({ onTranscribed, onAudioAttach, draft, onDraftCha
                   Discard
                 </button>
               </div>
+              {attemptLog.length > 0 && (
+                <div className="border-t border-destructive/20 pt-2">
+                  <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5">
+                    <History className="size-3" />Transcription attempts log
+                  </div>
+                  <ul className="space-y-1">
+                    {attemptLog.map((entry, i) => (
+                      <li key={entry.id} className="flex items-start gap-2 text-[11px]">
+                        <span className="text-muted-foreground font-mono tabular-nums">{i + 1}.</span>
+                        <span className="text-muted-foreground font-mono tabular-nums">{new Date(entry.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}</span>
+                        <span className={`shrink-0 inline-flex items-center gap-1 px-1 rounded-sm ${entry.status === "success" ? "bg-gk-green/20 text-gk-green" : entry.status === "error" ? "bg-destructive/20 text-destructive" : "bg-primary/20 text-primary"}`}>
+                          {entry.status === "success" && <CheckCircle2 className="size-3" />}
+                          {entry.status === "error" && <AlertTriangle className="size-3" />}
+                          {entry.status === "started" && <Loader2 className="size-3 animate-spin" />}
+                          {entry.status === "success" ? "Success" : entry.status === "error" ? "Failed" : "Started"}
+                        </span>
+                        {entry.message && <span className="text-muted-foreground truncate max-w-[180px]" title={entry.message}>{entry.message}</span>}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
           ) : transcript ? (
 
