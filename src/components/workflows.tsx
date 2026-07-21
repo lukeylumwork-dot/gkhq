@@ -687,6 +687,8 @@ function ReportForm({ onDone }: { onDone: () => void }) {
         }
       />
       <VoiceNoteField
+        draft={voiceTranscript}
+        onDraftChange={setVoiceTranscript}
         onTranscribed={(text, mode) =>
           setComments((prev) => (mode === "replace" || !prev.trim() ? text : `${prev.trim()}\n\n${text}`))
         }
