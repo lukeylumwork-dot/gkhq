@@ -1,11 +1,40 @@
 import { createFileRoute, Navigate } from "@tanstack/react-router";
-import { useState } from "react";
-import { KeyRound, Loader2, Check } from "lucide-react";
+import { useMemo, useState } from "react";
+import { KeyRound, Loader2, Check, X, AlertCircle } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { useAuth } from "@/lib/auth";
 import { PageHeader, Card } from "@/components/primitives";
 import { changePassword } from "@/lib/account.functions";
 import { toast } from "sonner";
+
+type StrengthLevel = 0 | 1 | 2 | 3 | 4;
+type Rule = { id: string; label: string; test: (pw: string) => boolean };
+
+const RULES: Rule[] = [
+  { id: "len", label: "At least 8 characters", test: (p) => p.length >= 8 },
+  { id: "upper", label: "Uppercase letter", test: (p) => /[A-Z]/.test(p) },
+  { id: "lower", label: "Lowercase letter", test: (p) => /[a-z]/.test(p) },
+  { id: "num", label: "Number", test: (p) => /\d/.test(p) },
+  { id: "sym", label: "Symbol", test: (p) => /[^A-Za-z0-9]/.test(p) },
+];
+
+const LEVELS: { label: string; className: string; bar: string }[] = [
+  { label: "Very weak", className: "text-destructive", bar: "bg-destructive" },
+  { label: "Weak", className: "text-destructive", bar: "bg-destructive" },
+  { label: "Fair", className: "text-warning", bar: "bg-warning" },
+  { label: "Good", className: "text-gk-green", bar: "bg-gk-green" },
+  { label: "Strong", className: "text-gk-green", bar: "bg-gk-green" },
+];
+
+function scorePassword(pw: string, disqualifiers: string[] = []): StrengthLevel {
+  if (!pw) return 0;
+  const passed = RULES.filter((r) => r.test(pw)).length;
+  let score = passed - 1; // 5 rules -> up to 4
+  if (pw.length >= 12) score += 1;
+  if (disqualifiers.some((d) => d && pw.toLowerCase() === d.toLowerCase())) score = 0;
+  return Math.max(0, Math.min(4, score)) as StrengthLevel;
+}
+
 
 export const Route = createFileRoute("/account")({
   component: AccountPage,
