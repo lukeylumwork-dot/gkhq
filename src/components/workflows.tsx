@@ -562,7 +562,6 @@ function ReportForm({ onDone }: { onDone: () => void }) {
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (submitting) return;
-    void attachMediaToReport;
     setError(null);
     setFieldErrors({});
     setSubmitting(true);
@@ -587,6 +586,13 @@ function ReportForm({ onDone }: { onDone: () => void }) {
           },
         },
       });
+      if (selectedMedia.length > 0) {
+        try {
+          await attachMediaToReport(res.report_id, selectedMedia, user);
+        } catch (attachErr) {
+          console.warn("attachMediaToReport failed", attachErr);
+        }
+      }
       if (user) clearDraft(user.id);
       setDone({ report_id: res.report_id, average: res.average });
       try { window.dispatchEvent(new CustomEvent("rpm:report-submitted", { detail: res })); } catch { /* ignore */ }
