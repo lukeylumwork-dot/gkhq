@@ -26,12 +26,12 @@ function precedence(roles: string[]): ManagedRole | null {
 export const listManagedUsers = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<ManagedUserRow[]> => {
-    const { data: isSuper, error: roleErr } = await context.supabase.rpc("has_role", {
-      _user_id: context.userId,
-      _role: "super_admin",
-    });
+    const { data: myRoles, error: roleErr } = await context.supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", context.userId);
     if (roleErr) throw new Error(roleErr.message);
-    if (!isSuper) throw new Error("Forbidden");
+    if (!myRoles?.some((r) => r.role === "super_admin")) throw new Error("Forbidden");
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const [{ data: profiles, error: profErr }, { data: roles, error: rolesErr }] = await Promise.all([
@@ -67,12 +67,12 @@ export const setManagedUserRole = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => setRoleInput.parse(input))
   .handler(async ({ data, context }) => {
-    const { data: isSuper, error: roleErr } = await context.supabase.rpc("has_role", {
-      _user_id: context.userId,
-      _role: "super_admin",
-    });
+    const { data: myRoles, error: roleErr } = await context.supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", context.userId);
     if (roleErr) throw new Error(roleErr.message);
-    if (!isSuper) throw new Error("Forbidden");
+    if (!myRoles?.some((r) => r.role === "super_admin")) throw new Error("Forbidden");
 
     if (data.userId === context.userId) {
       throw new Error("You cannot change your own role from this screen.");
