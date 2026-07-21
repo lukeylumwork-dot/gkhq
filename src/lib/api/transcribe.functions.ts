@@ -76,3 +76,72 @@ export const transcribeNotes = createServerFn({ method: "POST" })
     }
     return { ok: true as const, text };
   });
+
+const AUDIO_EXT: Record<string, string> = {
+  "audio/webm": "webm",
+  "audio/ogg": "ogg",
+  "audio/mp4": "mp4",
+  "audio/x-m4a": "m4a",
+  "audio/mpeg": "mp3",
+  "audio/mp3": "mp3",
+  "audio/wav": "wav",
+  "audio/wave": "wav",
+  "audio/x-wav": "wav",
+};
+
+const VoiceInputSchema = z.object({
+  audioDataUrl: z
+    .string()
+    .min(64)
+    .max(25_000_000)
+    .regex(/^data:audio\/[a-z0-9.+-]+;base64,/i, "Must be a base64 audio data URL"),
+});
+
+export const transcribeVoiceNote = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => VoiceInputSchema.parse(data))
+  .handler(async ({ data }) => {
+    const apiKey = process.env.LOVABLE_API_KEY;
+    if (!apiKey) return { ok: false as const, error: "AI service is not configured." };
+
+    const match = /^data:(audio\/[a-z0-9.+-]+);base64,(.+)$/i.exec(data.audioDataUrl);
+    if (!match) return { ok: false as const, error: "Invalid audio payload." };
+    const mime = match[1].toLowerCase().split(";")[0];
+    const b64 = match[2];
+    const ext = AUDIO_EXT[mime] ?? "webm";
+
+    let bytes: Uint8Array;
+    try {
+      const bin = atob(b64);
+      bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    } catch {
+      return { ok: false as const, error: "Could not decode audio." };
+    }
+    if (bytes.byteLength < 2048) {
+      return { ok: false as const, error: "Recording is too short — please try again." };
+    }
+
+    const form = new FormData();
+    form.append("model", "openai/gpt-4o-mini-transcribe");
+    form.append("file", new Blob([bytes], { type: mime }), `voice-note.${ext}`);
+
+    const res = await fetch("https://ai.gateway.lovable.dev/v1/audio/transcriptions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiKey}` },
+      body: form,
+    });
+
+    if (!res.ok) {
+      if (res.status === 429) return { ok: false as const, error: "Rate limit reached — try again in a moment." };
+      if (res.status === 402) return { ok: false as const, error: "AI credits exhausted — add credits in workspace settings." };
+      const detail = await res.text().catch(() => "");
+      console.error("transcribeVoiceNote gateway error", res.status, detail);
+      return { ok: false as const, error: `Transcription failed (${res.status}).` };
+    }
+
+    const json = (await res.json()) as { text?: string };
+    const text = json.text?.trim() ?? "";
+    if (!text) return { ok: false as const, error: "No transcription returned." };
+    return { ok: true as const, text };
+  });
