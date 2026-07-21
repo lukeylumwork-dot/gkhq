@@ -84,3 +84,22 @@ export const changePassword = createServerFn({ method: "POST" })
 
     return { ok: true as const };
   });
+
+/**
+ * Record that the caller just completed a password reset via the recovery
+ * (email link) flow. The recovery link gives the user a short-lived
+ * authenticated session, so requireSupabaseAuth is sufficient.
+ */
+export const recordPasswordRecovery = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { logPasswordChange } = await import(
+      "@/lib/security/password-audit.server"
+    );
+    await logPasswordChange({
+      userId: context.userId,
+      actorId: context.userId,
+      eventType: "recovery_reset",
+    });
+    return { ok: true as const };
+  });
