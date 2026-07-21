@@ -103,25 +103,25 @@ function AccountPage() {
     .toUpperCase();
 
   return (
-    <div className="mx-auto w-full max-w-2xl space-y-6">
+    <div className="mx-auto w-full max-w-xl space-y-5 px-4 sm:px-0">
       <PageHeader title="Account" description="Manage your sign-in credentials." />
 
-      <Card className="p-0 overflow-hidden">
-        <div className="flex items-center gap-4 p-5 border-b border-border/60 bg-muted/20">
-          <div className="flex size-12 items-center justify-center rounded-full bg-primary/15 text-primary font-semibold tracking-wider">
+      <Card className="overflow-hidden">
+        <div className="flex items-center gap-3 sm:gap-4 p-4 sm:p-5">
+          <div className="flex size-11 sm:size-12 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary font-semibold tracking-wider">
             {initials}
           </div>
-          <div className="min-w-0">
-            <div className="text-base font-semibold truncate">{user?.name ?? "—"}</div>
+          <div className="min-w-0 flex-1">
+            <div className="text-sm sm:text-base font-semibold truncate">{user?.name ?? "—"}</div>
             <div className="font-mono text-xs text-muted-foreground truncate">{user?.email ?? "—"}</div>
           </div>
-          <span className="ml-auto shrink-0 rounded-full border border-border/70 bg-background/60 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+          <span className="shrink-0 rounded-full border border-border/70 bg-background/60 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
             {user?.role ?? "—"}
           </span>
         </div>
       </Card>
 
-      <Card>
+      <Card className="p-4 sm:p-5">
         <div className="mb-4">
           <h2 className="text-sm font-semibold uppercase tracking-[0.06em]">Change password</h2>
           <p className="text-xs text-muted-foreground mt-1">
