@@ -40,7 +40,12 @@ export function VoiceNoteField({ onTranscribed, onAudioAttach, className }: Prop
   const streamRef = useRef<MediaStream | null>(null);
   const chunksRef = useRef<BlobPart[]>([]);
   const dataUrlRef = useRef<string | null>(null);
+  const blobRef = useRef<Blob | null>(null);
+  const mimeRef = useRef<string>("audio/webm");
+  const durationRef = useRef<number>(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [attached, setAttached] = useState(false);
+  const [attaching, setAttaching] = useState(false);
 
   const run = useServerFn(transcribeVoiceNote);
 
