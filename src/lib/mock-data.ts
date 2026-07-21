@@ -304,12 +304,10 @@ const OVERSEAS_LEAGUES = new Set(["Serie A", "MLS", "Danish Superliga", "Allsven
 
 function deriveStatus(s: Seed): Status {
   if (s.league === "Free Agent") return "Free Agent";
-  if (s.age <= 17) return "Prospect";
-  // Elite — Premier League regulars and the two hero profiles
-  const ELITE = new Set(["James Beadle", "Marcus Bettinelli", "Brandon Austin", "Asmir Begovic"]);
-  if (ELITE.has(s.name)) return "Elite";
-  if (s.age <= 21) return "Development";
-  return "First Team";
+  // Academy: goalkeepers currently playing at U15/U16/U17/U18 level.
+  // Proxy in mock data: age <= 18 (no U-league seeds present).
+  if (s.age <= 18) return "Academy";
+  return `Tier ${deriveTierLevel(s)}` as Status;
 }
 function deriveRegion(s: Seed): Region {
   if (s.league === "Free Agent") return "Free Agent";
