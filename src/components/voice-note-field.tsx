@@ -33,6 +33,9 @@ export function VoiceNoteField({ onTranscribed, onAudioAttach, className }: Prop
   const [recording, setRecording] = useState(false);
   const [busy, setBusy] = useState(false);
   const [transcript, setTranscript] = useState<string | null>(null);
+  const [tokens, setTokens] = useState<Array<{ token: string; confidence: number }>>([]);
+  const [avgConfidence, setAvgConfidence] = useState<number | null>(null);
+  const [reviewed, setReviewed] = useState(false);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [elapsed, setElapsed] = useState(0);
 
@@ -64,6 +67,9 @@ export function VoiceNoteField({ onTranscribed, onAudioAttach, className }: Prop
     if (audioUrl) URL.revokeObjectURL(audioUrl);
     setAudioUrl(null);
     setTranscript(null);
+    setTokens([]);
+    setAvgConfidence(null);
+    setReviewed(false);
     dataUrlRef.current = null;
     blobRef.current = null;
     durationRef.current = 0;
@@ -73,14 +79,19 @@ export function VoiceNoteField({ onTranscribed, onAudioAttach, className }: Prop
 
   const transcribe = async (dataUrl: string) => {
     setBusy(true);
+    setReviewed(false);
     try {
       const result = await run({ data: { audioDataUrl: dataUrl } });
       if (!result.ok) {
         toast.error(result.error);
         setTranscript(null);
+        setTokens([]);
+        setAvgConfidence(null);
       } else {
         setTranscript(result.text);
-        toast.success("Voice note transcribed");
+        setTokens(result.tokens ?? []);
+        setAvgConfidence(result.avgConfidence ?? null);
+        toast.success("Voice note transcribed — review before applying");
       }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Transcription failed");
@@ -88,6 +99,7 @@ export function VoiceNoteField({ onTranscribed, onAudioAttach, className }: Prop
       setBusy(false);
     }
   };
+
 
   const start = async () => {
     reset();
