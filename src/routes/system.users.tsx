@@ -205,7 +205,7 @@ function SystemUsersPage() {
               return (
                 <li
                   key={u.id}
-                  className="grid md:grid-cols-[1fr_160px_180px] gap-3 px-4 py-3 items-center"
+                  className="grid md:grid-cols-[1fr_160px_240px] gap-3 px-4 py-3 items-center"
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="size-8 rounded-full bg-accent grid place-items-center text-xs font-semibold shrink-0">
