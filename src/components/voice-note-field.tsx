@@ -195,6 +195,7 @@ export function VoiceNoteField({ onTranscribed, onAudioAttach, draft, onDraftCha
     clearPhaseTimer();
     setPhase("idle");
     setErrorMsg(null);
+    setCancelled(true);
     toast.message("Transcription cancelled");
   };
 
