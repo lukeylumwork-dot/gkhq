@@ -50,14 +50,13 @@ function Dashboard() {
         <SectionTitle action={<Link to="/goalkeepers" className="text-xs text-primary inline-flex items-center gap-1">View goalkeepers <ArrowUpRight className="size-3" /></Link>}>
           Duty of Care · Traffic Light
         </SectionTitle>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {([
             { level: "green", label: "On Track", count: dutyOverview.green, hint: "Contact within 21 days" },
-            { level: "amber", label: "Attention", count: dutyOverview.amber, hint: "22–35 days since contact" },
-            { level: "red", label: "Breach", count: dutyOverview.red, hint: "36+ days · escalate now" },
+            { level: "amber", label: "Attention", count: dutyOverview.amber, hint: "22+ days since contact" },
           ] as const).map((b) => {
             const pct = Math.round((b.count / Math.max(1, dutyOverview.total)) * 100);
-            const bar = b.level === "green" ? "bg-success" : b.level === "amber" ? "bg-warning" : "bg-destructive";
+            const bar = b.level === "green" ? "bg-success" : "bg-warning";
             return (
               <div key={b.level} className="rounded-md border border-border/60 bg-accent/20 p-3">
                 <div className="flex items-center justify-between">
@@ -76,25 +75,6 @@ function Dashboard() {
             );
           })}
         </div>
-        {dutyOverview.red > 0 && (
-          <div className="mt-4">
-            <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">Breaches requiring immediate action</div>
-            <div className="flex flex-wrap gap-1.5">
-              {goalkeepers
-                .map((g) => ({ g, d: dutyStatusForGk(g) }))
-                .filter((x) => x.d.level === "red")
-                .sort((a, b) => b.d.days - a.d.days)
-                .slice(0, 8)
-                .map(({ g, d }) => (
-                  <Link key={g.id} to="/goalkeepers/$gkId" params={{ gkId: g.id }} className="inline-flex items-center gap-1.5 text-[11px] px-2 py-1 rounded border border-destructive/40 bg-destructive/10 hover:bg-destructive/20 transition-colors">
-                    <TrafficLight level="red" size={6} />
-                    <span className="font-medium">{g.name}</span>
-                    <span className="text-destructive/80 tabular-nums font-mono">{d.days}d</span>
-                  </Link>
-                ))}
-            </div>
-          </div>
-        )}
       </Card>
 
 

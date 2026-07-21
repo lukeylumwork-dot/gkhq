@@ -573,16 +573,14 @@ export function formatRelative(iso: string) {
 
 // ---------- Duty-of-care traffic light ----------
 // Green  = contact within 21 days (on track)
-// Amber  = 22–35 days (attention required)
-// Red    = 36+ days (duty breached)
-export type DutyLevel = "green" | "amber" | "red";
+// Amber  = 22+ days (attention required)
+export type DutyLevel = "green" | "amber";
 export interface DutyStatus { level: DutyLevel; label: string; days: number; }
 
 export function dutyStatusForGk(gk: Goalkeeper): DutyStatus {
   const days = Math.max(0, Math.floor((Date.now() - new Date(gk.lastInteraction).getTime()) / 86400000));
   if (days <= 21) return { level: "green", label: "On Track", days };
-  if (days <= 35) return { level: "amber", label: "Attention", days };
-  return { level: "red", label: "Breach", days };
+  return { level: "amber", label: "Attention", days };
 }
 
 export function dutyStatusForMentor(mentorId: string): DutyStatus {
@@ -593,17 +591,15 @@ export function dutyStatusForMentor(mentorId: string): DutyStatus {
     if (!m?.targetInteractions) return { level: "green", label: "Support", days: 0 };
     const pct = (m.completedThisMonth / m.targetInteractions) * 100;
     if (pct >= 80) return { level: "green", label: "On Track", days: 0 };
-    if (pct >= 50) return { level: "amber", label: "Behind", days: 0 };
-    return { level: "red", label: "At Risk", days: 0 };
+    return { level: "amber", label: "Behind", days: 0 };
   }
-  const counts = gks.reduce((acc, g) => { acc[dutyStatusForGk(g).level]++; return acc; }, { green: 0, amber: 0, red: 0 } as Record<DutyLevel, number>);
-  if (counts.red > 0) return { level: "red", label: `${counts.red} breach${counts.red > 1 ? "es" : ""}`, days: 0 };
+  const counts = gks.reduce((acc, g) => { acc[dutyStatusForGk(g).level]++; return acc; }, { green: 0, amber: 0 } as Record<DutyLevel, number>);
   if (counts.amber > 0) return { level: "amber", label: `${counts.amber} need attention`, days: 0 };
   return { level: "green", label: "All on track", days: 0 };
 }
 
 export const dutyOverview = (() => {
-  const counts = goalkeepers.reduce((acc, g) => { acc[dutyStatusForGk(g).level]++; return acc; }, { green: 0, amber: 0, red: 0 } as Record<DutyLevel, number>);
+  const counts = goalkeepers.reduce((acc, g) => { acc[dutyStatusForGk(g).level]++; return acc; }, { green: 0, amber: 0 } as Record<DutyLevel, number>);
   return { ...counts, total: goalkeepers.length };
 })();
 

@@ -17,7 +17,7 @@ function GoalkeepersLayout() {
 function GoalkeepersList() {
   const [q, setQ] = useState("");
   const [cat, setCat] = useState<string>("All");
-  const [duty, setDuty] = useState<"all" | "green" | "amber" | "red">("all");
+  const [duty, setDuty] = useState<"all" | "green" | "amber">("all");
   const filtered = goalkeepers.filter((g) => {
     if (cat === "UK Based" && g.region !== "UK Based") return false;
     if (cat === "Overseas" && g.region !== "Overseas") return false;
@@ -33,18 +33,16 @@ function GoalkeepersList() {
     { id: "all", label: "All", count: dutyOverview.total },
     { id: "green", label: "On Track", count: dutyOverview.green },
     { id: "amber", label: "Attention", count: dutyOverview.amber },
-    { id: "red", label: "Breach", count: dutyOverview.red },
   ];
   return (
     <div className="space-y-5">
       <PageHeader title="Goalkeepers" description={`${goalkeepers.length} RPM clients under management across the UK and internationally.`} />
       <DataSourceBanner classification="mock" extra="Roster, assigned-mentor fields, duty traffic-light counts and last-contact times are illustrative." />
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
         <StatCard label="Total Under Care" value={dutyOverview.total} />
         <StatCard label="On Track · ≤21d" value={dutyOverview.green} hint="Duty fulfilled" />
-        <StatCard label="Attention · 22–35d" value={dutyOverview.amber} hint="Contact required" accent="warning" />
-        <StatCard label="Breach · 36d+" value={dutyOverview.red} hint="Immediate action" accent="destructive" />
+        <StatCard label="Attention · 22d+" value={dutyOverview.amber} hint="Contact required" accent="warning" />
       </div>
 
       <div className="flex flex-wrap items-center gap-2">

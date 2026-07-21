@@ -6,18 +6,15 @@ import { TIER_DEFINITIONS } from "@/lib/mock-data";
 import type { Tier, DutyLevel } from "@/lib/mock-data";
 
 export function TrafficLight({ level, size = 10 }: { level: DutyLevel; size?: number }) {
-  const tone =
-    level === "green" ? "bg-success"
-    : level === "amber" ? "bg-warning"
-    : "bg-destructive animate-pulse";
+  const tone = level === "green" ? "bg-success" : "bg-warning";
   return <span className={cn("inline-block rounded-full shrink-0 ring-2 ring-background", tone)} style={{ width: size, height: size }} aria-label={`duty ${level}`} />;
 }
 
 export function DutyBadge({ level, label }: { level: DutyLevel; label: string }) {
   const tone =
-    level === "green" ? "bg-success/15 text-success border-success/30"
-    : level === "amber" ? "bg-warning/15 text-warning border-warning/30"
-    : "bg-destructive/15 text-destructive border-destructive/40";
+    level === "green"
+      ? "bg-success/15 text-success border-success/30"
+      : "bg-warning/15 text-warning border-warning/30";
   return (
     <span className={cn("inline-flex items-center gap-1.5 px-1.5 py-0.5 rounded text-[10px] font-medium border whitespace-nowrap", tone)}>
       <TrafficLight level={level} size={6} />
