@@ -316,8 +316,61 @@ export function VoiceNoteField({ onTranscribed, onAudioAttach, className }: Prop
         <div className="flex flex-col gap-2">
           <audio src={audioUrl} controls className="w-full h-8" />
           {busy ? (
-            <div className="inline-flex items-center gap-1.5 text-xs text-muted-foreground"><Loader2 className="size-3.5 animate-spin" />Transcribing…</div>
+            <div className="rounded-md border border-border bg-background p-2.5 space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <div className="inline-flex items-center gap-2 text-xs">
+                  <Loader2 className="size-3.5 animate-spin text-primary" />
+                  <span className="font-medium text-foreground">
+                    {phase === "preparing" && "Preparing audio…"}
+                    {phase === "uploading" && "Uploading to AI…"}
+                    {phase === "transcribing" && "Transcribing speech…"}
+                  </span>
+                  <span className="text-[10px] font-mono tabular-nums text-muted-foreground">{phaseElapsed}s</span>
+                  {attempt > 1 && (
+                    <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Attempt {attempt}</span>
+                  )}
+                </div>
+                <button type="button" onClick={cancelTranscription} className="inline-flex items-center gap-1 h-7 px-2 rounded-md border border-border text-[11px] font-medium hover:bg-accent">
+                  <X className="size-3" />Cancel
+                </button>
+              </div>
+              <div className="flex gap-1" aria-hidden>
+                {(["preparing", "uploading", "transcribing"] as const).map((p) => {
+                  const order = { preparing: 0, uploading: 1, transcribing: 2 };
+                  const active = order[phase as keyof typeof order] >= order[p];
+                  return (
+                    <div key={p} className={`h-1 flex-1 rounded-full ${active ? "bg-primary" : "bg-border"} ${phase === p ? "animate-pulse" : ""}`} />
+                  );
+                })}
+              </div>
+              <p className="text-[10px] text-muted-foreground">Your recording is preserved — cancel any time to keep the audio and retry later.</p>
+            </div>
+          ) : errorMsg ? (
+            <div className="rounded-md border border-destructive/40 bg-destructive/5 p-2.5 space-y-2">
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="size-3.5 text-destructive mt-0.5 shrink-0" />
+                <div className="text-xs text-foreground">
+                  <div className="font-medium text-destructive">Transcription failed</div>
+                  <div className="text-muted-foreground mt-0.5">{errorMsg}</div>
+                  <div className="text-[10px] text-muted-foreground mt-1">Your audio is still saved — retry, or copy the recording out and try later.</div>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                <button type="button" onClick={retry} className="inline-flex items-center gap-1 h-7 px-2 rounded-md bg-primary text-primary-foreground text-[11px] font-medium hover:opacity-90">
+                  <RotateCcw className="size-3" />Retry transcription
+                </button>
+                {onAudioAttach && (
+                  <button type="button" onClick={attachAudio} disabled={attached || attaching} className="inline-flex items-center gap-1 h-7 px-2 rounded-md border border-border text-[11px] font-medium hover:bg-accent disabled:opacity-50">
+                    {attached ? "Audio saved" : attaching ? "Saving…" : "Save audio without transcript"}
+                  </button>
+                )}
+                <button type="button" onClick={reset} className="inline-flex items-center gap-1 h-7 px-2 rounded-md border border-border text-[11px] font-medium hover:bg-accent">
+                  Discard
+                </button>
+              </div>
+            </div>
           ) : transcript ? (
+
             <>
               <div className="flex items-center justify-between gap-2 flex-wrap">
                 <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Transcript — review before applying</div>
