@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { ShieldCheck, ShieldOff, Users, Search, Loader2, AlertCircle, UserPlus, Trash2, Copy } from "lucide-react";
+import { ShieldCheck, ShieldOff, Users, Search, Loader2, AlertCircle, UserPlus, Trash2, Copy, Pencil } from "lucide-react";
 import { useAuth, ROLE_LABEL, type Role } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -32,6 +32,7 @@ function SystemUsersPage() {
   const { user, can } = useAuth();
   const [q, setQ] = useState("");
   const [showAdd, setShowAdd] = useState(false);
+  const [editUser, setEditUser] = useState<ManagedUserRow | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<ManagedUserRow | null>(null);
   const [tempPassword, setTempPassword] = useState<{ email: string; password: string } | null>(null);
 
@@ -54,6 +55,7 @@ function SystemUsersPage() {
       setRole({ data: { userId: vars.userId, role: vars.role } }),
     onSuccess: (_res, vars) => {
       qc.invalidateQueries({ queryKey: QUERY_KEY });
+      setEditUser(null);
       toast.success(
         vars.role ? `${vars.name} → ${ROLE_LABEL[vars.role]}` : `${vars.name}: role revoked`,
       );
@@ -115,10 +117,12 @@ function SystemUsersPage() {
       u.email.toLowerCase().includes(q.toLowerCase()),
   );
 
-  const changeRole = (u: ManagedUserRow, next: RoleOrNone) => {
-    const nextRole = next === "" ? null : next;
-    if (nextRole === u.role) return;
-    mutation.mutate({ userId: u.id, role: nextRole, name: u.name || u.email });
+  const changeRole = (u: ManagedUserRow, next: Role | null) => {
+    if (next === u.role) {
+      setEditUser(null);
+      return;
+    }
+    mutation.mutate({ userId: u.id, role: next, name: u.name || u.email });
   };
 
   return (
@@ -155,11 +159,10 @@ function SystemUsersPage() {
       </div>
 
       <div className="rounded-lg border border-border overflow-hidden bg-card">
-        <div className="hidden md:grid grid-cols-[1fr_160px_200px_44px] gap-3 px-4 py-2.5 border-b border-border text-[10px] uppercase tracking-wider text-muted-foreground font-medium bg-muted/30">
+        <div className="hidden md:grid grid-cols-[1fr_160px_180px] gap-3 px-4 py-2.5 border-b border-border text-[10px] uppercase tracking-wider text-muted-foreground font-medium bg-muted/30">
           <div>User</div>
           <div>Current role</div>
-          <div>Assign role</div>
-          <div />
+          <div className="text-right">Actions</div>
         </div>
 
         {query.isLoading ? (
@@ -187,7 +190,7 @@ function SystemUsersPage() {
               return (
                 <li
                   key={u.id}
-                  className="grid md:grid-cols-[1fr_160px_200px_44px] gap-3 px-4 py-3 items-center"
+                  className="grid md:grid-cols-[1fr_160px_180px] gap-3 px-4 py-3 items-center"
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="size-8 rounded-full bg-accent grid place-items-center text-xs font-semibold shrink-0">
@@ -224,24 +227,16 @@ function SystemUsersPage() {
                       </span>
                     )}
                   </div>
-                  <div className="flex items-center gap-2">
-                    <select
-                      value={u.role ?? ""}
-                      onChange={(e) => changeRole(u, e.target.value as RoleOrNone)}
+                  <div className="flex items-center justify-end gap-2">
+                    <button
+                      onClick={() => setEditUser(u)}
                       disabled={isSelf || busy}
-                      title={isSelf ? "You can't change your own role from this screen" : undefined}
-                      className="flex-1 h-9 px-2 rounded-md border border-border bg-input/60 text-sm focus:outline-none focus:ring-2 focus:ring-ring/40 disabled:opacity-50 disabled:cursor-not-allowed"
+                      title={isSelf ? "You can't change your own role from this screen" : "Edit roles"}
+                      className="inline-flex h-8 px-2.5 items-center gap-1.5 rounded-md border border-border text-xs font-medium hover:bg-accent disabled:opacity-30 disabled:cursor-not-allowed"
                     >
-                      <option value="">— No role —</option>
-                      {ROLES.map((r) => (
-                        <option key={r} value={r}>
-                          {ROLE_LABEL[r]}
-                        </option>
-                      ))}
-                    </select>
-                    {busy && <Loader2 className="size-4 animate-spin text-muted-foreground" />}
-                  </div>
-                  <div className="flex justify-end">
+                      {busy ? <Loader2 className="size-3.5 animate-spin" /> : <Pencil className="size-3.5" />}
+                      Edit roles
+                    </button>
                     <button
                       onClick={() => setConfirmDelete(u)}
                       disabled={isSelf}
@@ -271,6 +266,15 @@ function SystemUsersPage() {
           busy={createMutation.isPending}
           onCancel={() => setShowAdd(false)}
           onSubmit={(vals) => createMutation.mutate(vals)}
+        />
+      )}
+
+      {editUser && (
+        <EditRoleDialog
+          user={editUser}
+          busy={mutation.isPending}
+          onCancel={() => setEditUser(null)}
+          onSubmit={(role) => changeRole(editUser, role)}
         />
       )}
 
@@ -489,6 +493,107 @@ function TempPasswordDialog({
             className="h-9 px-3 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:opacity-90"
           >
             Done
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function EditRoleDialog({
+  user,
+  busy,
+  onCancel,
+  onSubmit,
+}: {
+  user: ManagedUserRow;
+  busy: boolean;
+  onCancel: () => void;
+  onSubmit: (role: Role | null) => void;
+}) {
+  const [role, setRole] = useState<RoleOrNone>(user.role ?? "");
+  const changed = (role === "" ? null : role) !== user.role;
+
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-background/70 backdrop-blur-sm p-4">
+      <div className="w-full max-w-md rounded-lg border border-border bg-card p-5 shadow-lg">
+        <h2 className="text-base font-semibold">Edit roles</h2>
+        <p className="text-xs text-muted-foreground mt-1">
+          {user.name || user.email}
+          {user.email && user.name ? ` · ${user.email}` : ""}
+        </p>
+
+        <div className="mt-4">
+          <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-2">
+            Current role
+          </div>
+          {user.role ? (
+            <span
+              className={cn(
+                "inline-flex h-6 px-2 items-center rounded border text-[10px] uppercase tracking-wider font-medium",
+                ROLE_TONE[user.role],
+              )}
+            >
+              {ROLE_LABEL[user.role]}
+            </span>
+          ) : (
+            <span className="inline-flex h-6 px-2 items-center rounded border border-dashed border-border text-[10px] uppercase tracking-wider font-medium text-muted-foreground">
+              No role
+            </span>
+          )}
+        </div>
+
+        <div className="mt-4">
+          <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-2">
+            Assign role
+          </div>
+          <div className="space-y-1.5">
+            {(["", ...ROLES] as RoleOrNone[]).map((r) => {
+              const id = `role-${r || "none"}`;
+              const label = r === "" ? "No role (revoke access)" : ROLE_LABEL[r];
+              const selected = role === r;
+              return (
+                <label
+                  key={id}
+                  htmlFor={id}
+                  className={cn(
+                    "flex items-center gap-3 rounded-md border px-3 py-2 cursor-pointer text-sm",
+                    selected
+                      ? "border-primary/40 bg-primary/5"
+                      : "border-border hover:bg-accent",
+                  )}
+                >
+                  <input
+                    id={id}
+                    type="radio"
+                    name="edit-role"
+                    value={r}
+                    checked={selected}
+                    onChange={() => setRole(r)}
+                    className="accent-primary"
+                  />
+                  <span className="font-medium">{label}</span>
+                </label>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="mt-5 flex justify-end gap-2">
+          <button
+            onClick={onCancel}
+            disabled={busy}
+            className="h-9 px-3 rounded-md border border-border text-sm font-medium hover:bg-accent disabled:opacity-50"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={() => onSubmit(role === "" ? null : role)}
+            disabled={busy || !changed}
+            className="h-9 px-3 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 disabled:opacity-50 inline-flex items-center gap-2"
+          >
+            {busy && <Loader2 className="size-4 animate-spin" />}
+            Save changes
           </button>
         </div>
       </div>
