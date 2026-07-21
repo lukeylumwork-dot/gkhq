@@ -107,15 +107,15 @@ function AccountPage() {
       <PageHeader title="Account" description="Manage your sign-in credentials." />
 
       <Card className="p-4 relative overflow-hidden before:content-[''] before:absolute before:left-0 before:top-0 before:h-full before:w-[3px] before:bg-primary">
-        <div className="flex items-center gap-3">
+        <div className="grid grid-cols-[auto_1fr] items-center gap-3 sm:flex sm:flex-wrap sm:items-center">
           <div className="flex size-12 shrink-0 items-center justify-center rounded-full bg-accent text-accent-foreground font-semibold tracking-wider">
             {initials}
           </div>
-          <div className="min-w-0 flex-1">
+          <div className="min-w-0">
             <div className="text-sm font-semibold truncate">{user?.name ?? "—"}</div>
             <div className="font-mono text-xs text-muted-foreground truncate">{user?.email ?? "—"}</div>
           </div>
-          <span className="shrink-0 inline-flex items-center gap-1 rounded-full border border-border bg-accent/50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+          <span className="col-span-2 shrink-0 inline-flex items-center gap-1 rounded-full border border-border bg-accent/50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
             <Shield className="size-3" />
             {user?.role ?? "—"}
           </span>
@@ -176,18 +176,18 @@ function AccountPage() {
                   </span>
                   <span className="text-muted-foreground">{pw.length} chars</span>
                 </div>
-                <ul className="grid grid-cols-2 gap-x-3 gap-y-1 text-[11px]">
+                <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-1 text-[11px]">
                   {RULES.map((r) => {
                     const passed = r.test(pw);
                     return (
                       <li
                         key={r.id}
-                        className={`flex items-center gap-1.5 ${
+                        className={`flex items-center gap-1.5 min-w-0 ${
                           passed ? "text-gk-green" : "text-muted-foreground"
                         }`}
                       >
-                        {passed ? <Check className="size-3" /> : <X className="size-3 opacity-60" />}
-                        <span>{r.label}</span>
+                        {passed ? <Check className="size-3 shrink-0" /> : <X className="size-3 opacity-60 shrink-0" />}
+                        <span className="truncate">{r.label}</span>
                       </li>
                     );
                   })}
@@ -233,15 +233,15 @@ function AccountPage() {
               </p>
             ) : null}
           </div>
-          <div className="flex items-center justify-between pt-2">
-            <label className="flex items-center gap-2 text-xs text-muted-foreground select-none">
-              <input type="checkbox" checked={show} onChange={(e) => setShow(e.target.checked)} className="rounded border-border bg-input" />
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-2">
+            <label className="flex items-center gap-2 text-xs text-muted-foreground select-none shrink-0">
+              <input type="checkbox" checked={show} onChange={(e) => setShow(e.target.checked)} className="rounded border-border bg-input shrink-0" />
               Show passwords
             </label>
             <button
               type="submit"
               disabled={!canSubmit}
-              className="inline-flex items-center gap-1.5 h-9 px-4 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 disabled:opacity-40"
+              className="inline-flex items-center justify-center gap-1.5 h-10 sm:h-9 w-full sm:w-auto px-4 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 disabled:opacity-40"
             >
               {busy ? <Loader2 className="size-4 animate-spin" /> : ok ? <Check className="size-4" /> : <KeyRound className="size-4" />}
               {busy ? "Updating…" : ok ? "Updated" : "Update password"}
