@@ -30,15 +30,20 @@ interface Props {
   className?: string;
 }
 
+type Phase = "idle" | "preparing" | "uploading" | "transcribing";
+
 export function VoiceNoteField({ onTranscribed, onAudioAttach, className }: Props) {
   const [recording, setRecording] = useState(false);
-  const [busy, setBusy] = useState(false);
+  const [phase, setPhase] = useState<Phase>("idle");
+  const [phaseElapsed, setPhaseElapsed] = useState(0);
   const [transcript, setTranscript] = useState<string | null>(null);
   const [tokens, setTokens] = useState<Array<{ token: string; confidence: number }>>([]);
   const [avgConfidence, setAvgConfidence] = useState<number | null>(null);
   const [reviewed, setReviewed] = useState(false);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [elapsed, setElapsed] = useState(0);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
 
   const recorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -48,10 +53,17 @@ export function VoiceNoteField({ onTranscribed, onAudioAttach, className }: Prop
   const mimeRef = useRef<string>("audio/webm");
   const durationRef = useRef<number>(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const phaseTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
   const [attached, setAttached] = useState(false);
   const [attaching, setAttaching] = useState(false);
 
   const run = useServerFn(transcribeVoiceNote);
+  const busy = phase !== "idle";
+
+  const clearPhaseTimer = () => {
+    if (phaseTimerRef.current) { clearInterval(phaseTimerRef.current); phaseTimerRef.current = null; }
+  };
 
   const cleanupStream = () => {
     streamRef.current?.getTracks().forEach((t) => t.stop());
@@ -61,16 +73,24 @@ export function VoiceNoteField({ onTranscribed, onAudioAttach, className }: Prop
 
   useEffect(() => () => {
     cleanupStream();
+    clearPhaseTimer();
+    abortRef.current?.abort();
     if (audioUrl) URL.revokeObjectURL(audioUrl);
   }, [audioUrl]);
 
   const reset = () => {
+    abortRef.current?.abort();
+    clearPhaseTimer();
     if (audioUrl) URL.revokeObjectURL(audioUrl);
     setAudioUrl(null);
     setTranscript(null);
     setTokens([]);
     setAvgConfidence(null);
     setReviewed(false);
+    setErrorMsg(null);
+    setPhase("idle");
+    setPhaseElapsed(0);
+    setAttempt(0);
     dataUrlRef.current = null;
     blobRef.current = null;
     durationRef.current = 0;
@@ -78,16 +98,35 @@ export function VoiceNoteField({ onTranscribed, onAudioAttach, className }: Prop
     setElapsed(0);
   };
 
+  const enterPhase = (p: Exclude<Phase, "idle">) => {
+    clearPhaseTimer();
+    setPhase(p);
+    setPhaseElapsed(0);
+    phaseTimerRef.current = setInterval(() => setPhaseElapsed((s) => s + 1), 1000);
+  };
+
   const transcribe = async (dataUrl: string) => {
-    setBusy(true);
+    setErrorMsg(null);
     setReviewed(false);
+    setTranscript(null);
+    setTokens([]);
+    setAvgConfidence(null);
+    const controller = new AbortController();
+    abortRef.current = controller;
+    enterPhase("uploading");
+    // Optimistically flip to "transcribing" once upload buffering finishes (~1.2s).
+    const flipTimer = setTimeout(() => {
+      if (!controller.signal.aborted) enterPhase("transcribing");
+    }, 1200);
     try {
-      const result = await run({ data: { audioDataUrl: dataUrl } });
+      const call = run({ data: { audioDataUrl: dataUrl } });
+      const result = await new Promise<Awaited<typeof call>>((resolve, reject) => {
+        controller.signal.addEventListener("abort", () => reject(new DOMException("Aborted", "AbortError")), { once: true });
+        call.then(resolve, reject);
+      });
+      if (controller.signal.aborted) return;
       if (!result.ok) {
-        toast.error(result.error);
-        setTranscript(null);
-        setTokens([]);
-        setAvgConfidence(null);
+        setErrorMsg(result.error || "Transcription failed.");
       } else {
         setTranscript(result.text);
         setTokens(result.tokens ?? []);
@@ -95,11 +134,28 @@ export function VoiceNoteField({ onTranscribed, onAudioAttach, className }: Prop
         toast.success("Voice note transcribed — review before applying");
       }
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Transcription failed");
+      if ((e as { name?: string } | null)?.name === "AbortError") {
+        // Silent — user-initiated cancel.
+        return;
+      }
+      setErrorMsg(e instanceof Error ? e.message : "Transcription failed. Check your connection and try again.");
     } finally {
-      setBusy(false);
+      clearTimeout(flipTimer);
+      clearPhaseTimer();
+      if (abortRef.current === controller) abortRef.current = null;
+      setPhase("idle");
     }
   };
+
+  const cancelTranscription = () => {
+    abortRef.current?.abort();
+    abortRef.current = null;
+    clearPhaseTimer();
+    setPhase("idle");
+    setErrorMsg(null);
+    toast.message("Transcription cancelled");
+  };
+
 
 
   const start = async () => {
