@@ -307,7 +307,7 @@ export function VoiceNoteField({ onTranscribed, onAudioAttach, draft, onDraftCha
         )}
       </div>
 
-      {!audioUrl && !recording && !busy && (
+      {!audioUrl && !recording && !busy && !transcript && (
         <div className="flex flex-wrap gap-2">
           <button type="button" onClick={start} className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md bg-primary text-primary-foreground text-xs font-medium hover:opacity-90">
             <Mic className="size-3.5" />Record voice note
