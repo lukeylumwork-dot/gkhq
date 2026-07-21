@@ -588,6 +588,15 @@ export function VoiceNoteField({ onTranscribed, onAudioAttach, draft, onDraftCha
               )}
             </div>
           ) : cancelled ? (
+            (() => {
+              const hasSnapshot = !!preTranscribeSnapshotRef.current;
+              const undoNeedsNetwork = !hasSnapshot;
+              const cooldownPct = cooldownActive && retryAvailableAt > 0
+                ? Math.min(100, Math.max(0, 100 - (cooldownRemainingMs / cooldownMsForAttempts(attempt || 1)) * 100))
+                : 100;
+              const undoDisabled = undoNeedsNetwork && cooldownActive;
+              const retryDisabled = cooldownActive;
+              return (
             <div className="rounded-md border border-border bg-background p-2.5 space-y-2">
               <div className="flex items-start gap-2">
                 <XCircle className="size-3.5 text-muted-foreground mt-0.5 shrink-0" />
@@ -597,16 +606,43 @@ export function VoiceNoteField({ onTranscribed, onAudioAttach, draft, onDraftCha
                     {cancelledPhaseRef.current !== "idle" && (
                       <>Stopped during <span className="font-mono uppercase tracking-wider">{cancelledPhaseRef.current}</span>{cancelledElapsedRef.current ? ` at ${cancelledElapsedRef.current}s` : ""}. </>
                     )}
-                    The audio recording is still saved. Undo to continue where you left off, retry, or save without a transcript.
+                    The audio recording is still saved.{hasSnapshot ? " Undo to restore your previous transcript, retry, or save without a transcript." : " Undo to resume, retry, or save without a transcript."}
                   </div>
                 </div>
               </div>
+              {cooldownActive && (
+                <div className="rounded-md border border-border/60 bg-muted/40 p-2 space-y-1">
+                  <div className="flex items-center justify-between text-[10px] font-mono uppercase tracking-wider">
+                    <span className="text-muted-foreground">Retry cooldown</span>
+                    <span className="text-foreground">Available in {cooldownRemainingSec}s</span>
+                  </div>
+                  <div className="h-1 rounded-full bg-border overflow-hidden">
+                    <div className="h-full bg-primary transition-[width] duration-500 ease-linear" style={{ width: `${cooldownPct}%` }} />
+                  </div>
+                  <div className="text-[10px] text-muted-foreground">Backing off after {attempt} attempt{attempt === 1 ? "" : "s"} to protect the transcription service. {hasSnapshot ? "Undo cancellation is available now — it just restores your prior transcript." : "You can still save the audio without a transcript while you wait."}</div>
+                </div>
+              )}
+              {!cooldownActive && attempt >= 1 && (
+                <div className="text-[10px] font-mono uppercase tracking-wider text-gk-green">Retry available now</div>
+              )}
               <div className="flex flex-wrap gap-1.5">
-                <button type="button" onClick={undoCancel} className="inline-flex items-center gap-1 h-7 px-2 rounded-md bg-primary text-primary-foreground text-[11px] font-medium hover:opacity-90">
-                  <RotateCcw className="size-3" />Undo cancellation
+                <button
+                  type="button"
+                  onClick={undoCancel}
+                  disabled={undoDisabled}
+                  title={undoDisabled ? `Resuming needs the network — available in ${cooldownRemainingSec}s` : undefined}
+                  className="inline-flex items-center gap-1 h-7 px-2 rounded-md bg-primary text-primary-foreground text-[11px] font-medium hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <RotateCcw className="size-3" />Undo cancellation{undoDisabled ? ` (${cooldownRemainingSec}s)` : ""}
                 </button>
-                <button type="button" onClick={retry} className="inline-flex items-center gap-1 h-7 px-2 rounded-md border border-border text-[11px] font-medium hover:bg-accent">
-                  Retry from scratch
+                <button
+                  type="button"
+                  onClick={retry}
+                  disabled={retryDisabled}
+                  title={retryDisabled ? `Retry cools down for ${cooldownRemainingSec}s more` : undefined}
+                  className="inline-flex items-center gap-1 h-7 px-2 rounded-md border border-border text-[11px] font-medium hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Retry from scratch{retryDisabled ? ` (${cooldownRemainingSec}s)` : ""}
                 </button>
                 {onAudioAttach && (
                   <button type="button" onClick={() => void saveWithoutTranscript()} disabled={attaching} className="inline-flex items-center gap-1 h-7 px-2 rounded-md border border-border text-[11px] font-medium hover:bg-accent disabled:opacity-50">
