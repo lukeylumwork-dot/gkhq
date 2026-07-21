@@ -149,7 +149,7 @@ function Dashboard() {
           <div className="space-y-3">
             {stats.tierDistribution.map((t) => {
               const pct = Math.round((t.count / stats.totalGks) * 100);
-              const color = t.tier === "Elite" ? "bg-warning" : t.tier === "First Team" ? "bg-info" : t.tier === "Development" ? "bg-primary" : t.tier === "Free Agent" ? "bg-destructive" : "bg-tier-3";
+              const color = t.tier === "Tier 1" ? "bg-warning" : t.tier === "Tier 2" ? "bg-info" : t.tier === "Tier 3" ? "bg-primary" : t.tier === "Academy" ? "bg-tier-3" : "bg-muted-foreground/40";
               return (
                 <div key={t.tier}>
                   <div className="flex items-center justify-between text-xs mb-1.5">
