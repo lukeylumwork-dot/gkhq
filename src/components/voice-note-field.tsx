@@ -222,10 +222,10 @@ export function VoiceNoteField({ onTranscribed, onAudioAttach, className }: Prop
               <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Transcript</div>
               <div className="text-xs whitespace-pre-wrap bg-background border border-border rounded-md p-2 max-h-40 overflow-y-auto">{transcript}</div>
               <div className="flex flex-wrap gap-1.5">
-                <button type="button" onClick={() => onTranscribed(transcript, "append")} className="inline-flex items-center gap-1 h-7 px-2 rounded-md bg-primary text-primary-foreground text-[11px] font-medium hover:opacity-90">
+                <button type="button" onClick={() => handleApply("append")} className="inline-flex items-center gap-1 h-7 px-2 rounded-md bg-primary text-primary-foreground text-[11px] font-medium hover:opacity-90">
                   Append to comments
                 </button>
-                <button type="button" onClick={() => onTranscribed(transcript, "replace")} className="inline-flex items-center gap-1 h-7 px-2 rounded-md border border-border text-[11px] font-medium hover:bg-accent">
+                <button type="button" onClick={() => handleApply("replace")} className="inline-flex items-center gap-1 h-7 px-2 rounded-md border border-border text-[11px] font-medium hover:bg-accent">
                   Replace comments
                 </button>
                 <button type="button" onClick={() => { navigator.clipboard?.writeText(transcript); toast.success("Copied"); }} className="inline-flex items-center gap-1 h-7 px-2 rounded-md border border-border text-[11px] font-medium hover:bg-accent">
@@ -235,6 +235,19 @@ export function VoiceNoteField({ onTranscribed, onAudioAttach, className }: Prop
                   <RotateCcw className="size-3" />Retry
                 </button>
               </div>
+              {onAudioAttach && (
+                <div className="text-[11px] mt-1">
+                  {attaching ? (
+                    <span className="inline-flex items-center gap-1 text-muted-foreground"><Loader2 className="size-3 animate-spin" />Saving audio to Media Library…</span>
+                  ) : attached ? (
+                    <span className="inline-flex items-center gap-1 text-green-600"><CheckCircle2 className="size-3" />Audio saved to Media Library and linked to this report</span>
+                  ) : (
+                    <button type="button" onClick={attachAudio} className="underline text-muted-foreground hover:text-foreground">
+                      Save audio to Media Library
+                    </button>
+                  )}
+                </div>
+              )}
             </>
           ) : null}
         </div>
