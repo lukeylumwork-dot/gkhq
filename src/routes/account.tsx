@@ -52,7 +52,8 @@ function AccountPage() {
       <PageHeader title="Account" description="Manage your sign-in credentials." />
 
       <div className="grid gap-4 md:grid-cols-2">
-        <Card title="Your account">
+        <Card>
+          <h2 className="text-sm font-semibold uppercase tracking-[0.06em] mb-3">Your account</h2>
           <dl className="text-sm space-y-2">
             <div className="flex justify-between gap-4">
               <dt className="text-muted-foreground">Name</dt>
