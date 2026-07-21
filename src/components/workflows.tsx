@@ -241,6 +241,7 @@ function ReportForm({ onDone }: { onDone: () => void }) {
 
   const currentSnapshot = (): ReportDraftSnapshot => ({
     goalkeeper, coach, competition, team, opponent, matchDate, scores, comments, selectedMedia,
+    voiceTranscript,
   });
 
   const applySnapshot = (d: ReportDraftSnapshot) => {
@@ -253,6 +254,7 @@ function ReportForm({ onDone }: { onDone: () => void }) {
     setScores(d.scores);
     setComments(d.comments);
     setSelectedMedia(d.selectedMedia);
+    setVoiceTranscript(d.voiceTranscript ?? null);
   };
 
   // Restore on mount.
