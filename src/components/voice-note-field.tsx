@@ -65,6 +65,9 @@ export function VoiceNoteField({ onTranscribed, onAudioAttach, className }: Prop
     setAudioUrl(null);
     setTranscript(null);
     dataUrlRef.current = null;
+    blobRef.current = null;
+    durationRef.current = 0;
+    setAttached(false);
     setElapsed(0);
   };
 
