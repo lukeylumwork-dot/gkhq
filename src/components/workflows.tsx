@@ -328,7 +328,7 @@ function ReportForm({ onDone }: { onDone: () => void }) {
     }, 5000);
     return () => { if (saveTimer.current) clearTimeout(saveTimer.current); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, draftLoaded, done, conflict, goalkeeper, coach, competition, team, opponent, matchDate, scores, comments, selectedMedia]);
+  }, [user, draftLoaded, done, conflict, goalkeeper, coach, competition, team, opponent, matchDate, scores, comments, selectedMedia, voiceTranscript]);
 
   const discardDraft = () => {
     if (!user) return;
