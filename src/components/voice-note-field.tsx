@@ -113,6 +113,29 @@ export function VoiceNoteField({ onTranscribed, onAudioAttach, draft, onDraftCha
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [transcript, tokens, avgConfidence, reviewed]);
 
+  // Tick every 500ms while a retry cooldown is active so the countdown updates.
+  useEffect(() => {
+    if (!cancelled) return;
+    const remaining = retryAvailableAt - Date.now();
+    if (remaining <= 0) return;
+    const id = setInterval(() => setNowTick(Date.now()), 500);
+    return () => clearInterval(id);
+  }, [cancelled, retryAvailableAt, nowTick]);
+
+  // Cooldown scales with the number of prior attempts to avoid hammering the transcription API.
+  const cooldownMsForAttempts = (attempts: number): number => {
+    if (attempts <= 1) return 0;
+    if (attempts === 2) return 3000;
+    if (attempts === 3) return 8000;
+    if (attempts === 4) return 15000;
+    return 30000;
+  };
+
+  const cooldownRemainingMs = Math.max(0, retryAvailableAt - nowTick);
+  const cooldownRemainingSec = Math.ceil(cooldownRemainingMs / 1000);
+  const cooldownActive = cooldownRemainingMs > 0;
+
+
   const reset = () => {
     abortRef.current?.abort();
     clearPhaseTimer();
