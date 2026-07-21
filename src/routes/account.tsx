@@ -128,7 +128,7 @@ function AccountPage() {
             Confirm your current password, then set a new one of at least 8 characters.
           </p>
         </div>
-        <form onSubmit={onSubmit} className="space-y-4 max-w-md">
+        <form onSubmit={onSubmit} className="space-y-4">
           <div className="space-y-1.5">
             <label className="block text-xs uppercase tracking-[0.06em] text-muted-foreground">Current password</label>
             <input
