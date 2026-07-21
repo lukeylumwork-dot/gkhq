@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { ShieldCheck, ShieldOff, Users, Search, Loader2, AlertCircle } from "lucide-react";
+import { ShieldCheck, ShieldOff, Users, Search, Loader2, AlertCircle, UserPlus, Trash2, Copy } from "lucide-react";
 import { useAuth, ROLE_LABEL, type Role } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -9,6 +9,8 @@ import { useServerFn } from "@tanstack/react-start";
 import {
   listManagedUsers,
   setManagedUserRole,
+  createManagedUser,
+  deleteManagedUser,
   type ManagedUserRow,
 } from "@/lib/admin-users.functions";
 
@@ -29,8 +31,14 @@ const QUERY_KEY = ["managed-users"] as const;
 function SystemUsersPage() {
   const { user, can } = useAuth();
   const [q, setQ] = useState("");
+  const [showAdd, setShowAdd] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState<ManagedUserRow | null>(null);
+  const [tempPassword, setTempPassword] = useState<{ email: string; password: string } | null>(null);
+
   const list = useServerFn(listManagedUsers);
   const setRole = useServerFn(setManagedUserRole);
+  const createUser = useServerFn(createManagedUser);
+  const deleteUser = useServerFn(deleteManagedUser);
   const qc = useQueryClient();
 
   const canManage = !!user && can("system.manage");
@@ -47,14 +55,37 @@ function SystemUsersPage() {
     onSuccess: (_res, vars) => {
       qc.invalidateQueries({ queryKey: QUERY_KEY });
       toast.success(
-        vars.role
-          ? `${vars.name} → ${ROLE_LABEL[vars.role]}`
-          : `${vars.name}: role revoked`,
+        vars.role ? `${vars.name} → ${ROLE_LABEL[vars.role]}` : `${vars.name}: role revoked`,
       );
     },
     onError: (err: unknown) => {
-      const msg = err instanceof Error ? err.message : "Failed to update role";
-      toast.error(msg);
+      toast.error(err instanceof Error ? err.message : "Failed to update role");
+    },
+  });
+
+  const createMutation = useMutation({
+    mutationFn: (vars: { email: string; name: string; title: string; role: Role | null }) =>
+      createUser({ data: vars }),
+    onSuccess: (res, vars) => {
+      qc.invalidateQueries({ queryKey: QUERY_KEY });
+      setShowAdd(false);
+      toast.success(`Added ${vars.name}`);
+      if (res?.tempPassword) setTempPassword({ email: vars.email, password: res.tempPassword });
+    },
+    onError: (err: unknown) => {
+      toast.error(err instanceof Error ? err.message : "Failed to create user");
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (u: ManagedUserRow) => deleteUser({ data: { userId: u.id } }),
+    onSuccess: (_r, u) => {
+      qc.invalidateQueries({ queryKey: QUERY_KEY });
+      setConfirmDelete(null);
+      toast.success(`Deleted ${u.name || u.email}`);
+    },
+    onError: (err: unknown) => {
+      toast.error(err instanceof Error ? err.message : "Failed to delete user");
     },
   });
 
@@ -77,10 +108,11 @@ function SystemUsersPage() {
   }
 
   const users = query.data ?? [];
-  const filtered = users.filter((u) =>
-    !q.trim() ||
-    u.name.toLowerCase().includes(q.toLowerCase()) ||
-    u.email.toLowerCase().includes(q.toLowerCase()),
+  const filtered = users.filter(
+    (u) =>
+      !q.trim() ||
+      u.name.toLowerCase().includes(q.toLowerCase()) ||
+      u.email.toLowerCase().includes(q.toLowerCase()),
   );
 
   const changeRole = (u: ManagedUserRow, next: RoleOrNone) => {
@@ -101,9 +133,15 @@ function SystemUsersPage() {
           </div>
           <h1 className="mt-1 text-2xl font-semibold tracking-tight">Users &amp; Roles</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Assign or revoke platform roles. Changes are written to the database and take effect on the user's next sign-in.
+            Add, remove, and assign roles. Changes take effect on the user's next sign-in.
           </p>
         </div>
+        <button
+          onClick={() => setShowAdd(true)}
+          className="inline-flex h-9 px-3 items-center gap-2 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:opacity-90"
+        >
+          <UserPlus className="size-4" /> Add user
+        </button>
       </div>
 
       <div className="relative max-w-sm">
@@ -117,10 +155,11 @@ function SystemUsersPage() {
       </div>
 
       <div className="rounded-lg border border-border overflow-hidden bg-card">
-        <div className="hidden md:grid grid-cols-[1fr_180px_220px] gap-3 px-4 py-2.5 border-b border-border text-[10px] uppercase tracking-wider text-muted-foreground font-medium bg-muted/30">
+        <div className="hidden md:grid grid-cols-[1fr_160px_200px_44px] gap-3 px-4 py-2.5 border-b border-border text-[10px] uppercase tracking-wider text-muted-foreground font-medium bg-muted/30">
           <div>User</div>
           <div>Current role</div>
           <div>Assign role</div>
+          <div />
         </div>
 
         {query.isLoading ? (
@@ -148,7 +187,7 @@ function SystemUsersPage() {
               return (
                 <li
                   key={u.id}
-                  className="grid md:grid-cols-[1fr_180px_220px] gap-3 px-4 py-3 items-center"
+                  className="grid md:grid-cols-[1fr_160px_200px_44px] gap-3 px-4 py-3 items-center"
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="size-8 rounded-full bg-accent grid place-items-center text-xs font-semibold shrink-0">
@@ -202,6 +241,16 @@ function SystemUsersPage() {
                     </select>
                     {busy && <Loader2 className="size-4 animate-spin text-muted-foreground" />}
                   </div>
+                  <div className="flex justify-end">
+                    <button
+                      onClick={() => setConfirmDelete(u)}
+                      disabled={isSelf}
+                      title={isSelf ? "You can't delete your own account" : "Delete user"}
+                      className="size-8 grid place-items-center rounded-md border border-border text-muted-foreground hover:bg-destructive/10 hover:text-destructive hover:border-destructive/40 disabled:opacity-30 disabled:cursor-not-allowed"
+                    >
+                      <Trash2 className="size-4" />
+                    </button>
+                  </div>
                 </li>
               );
             })}
@@ -209,12 +258,239 @@ function SystemUsersPage() {
               <li className="px-4 py-10 text-center text-sm text-muted-foreground">
                 <Users className="size-6 mx-auto mb-2 opacity-50" />
                 {users.length === 0
-                  ? "No users found. Team members appear here after they sign in for the first time."
+                  ? "No users yet. Click Add user to invite one."
                   : `No users match "${q}".`}
               </li>
             )}
           </ul>
         )}
+      </div>
+
+      {showAdd && (
+        <AddUserDialog
+          busy={createMutation.isPending}
+          onCancel={() => setShowAdd(false)}
+          onSubmit={(vals) => createMutation.mutate(vals)}
+        />
+      )}
+
+      {confirmDelete && (
+        <ConfirmDialog
+          title={`Delete ${confirmDelete.name || confirmDelete.email}?`}
+          message="This permanently removes the account, profile, and role. This cannot be undone."
+          confirmLabel="Delete user"
+          destructive
+          busy={deleteMutation.isPending}
+          onCancel={() => setConfirmDelete(null)}
+          onConfirm={() => deleteMutation.mutate(confirmDelete)}
+        />
+      )}
+
+      {tempPassword && (
+        <TempPasswordDialog
+          email={tempPassword.email}
+          password={tempPassword.password}
+          onClose={() => setTempPassword(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+function AddUserDialog({
+  busy,
+  onCancel,
+  onSubmit,
+}: {
+  busy: boolean;
+  onCancel: () => void;
+  onSubmit: (v: { email: string; name: string; title: string; role: Role | null }) => void;
+}) {
+  const [email, setEmail] = useState("");
+  const [name, setName] = useState("");
+  const [title, setTitle] = useState("");
+  const [role, setRole] = useState<RoleOrNone>("mentor");
+
+  const valid = email.includes("@") && name.trim().length > 0;
+
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-background/70 backdrop-blur-sm p-4">
+      <div className="w-full max-w-md rounded-lg border border-border bg-card p-5 shadow-lg">
+        <h2 className="text-base font-semibold">Add user</h2>
+        <p className="text-xs text-muted-foreground mt-1">
+          Creates a signed-in account with an auto-generated temporary password.
+        </p>
+        <div className="mt-4 space-y-3">
+          <Field label="Full name">
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="w-full h-9 px-2 rounded-md border border-border bg-input/60 text-sm focus:outline-none focus:ring-2 focus:ring-ring/40"
+              placeholder="Jane Doe"
+            />
+          </Field>
+          <Field label="Email">
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full h-9 px-2 rounded-md border border-border bg-input/60 text-sm focus:outline-none focus:ring-2 focus:ring-ring/40"
+              placeholder="jane@gkhq.app"
+            />
+          </Field>
+          <Field label="Title (optional)">
+            <input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="w-full h-9 px-2 rounded-md border border-border bg-input/60 text-sm focus:outline-none focus:ring-2 focus:ring-ring/40"
+              placeholder="Goalkeeper Mentor"
+            />
+          </Field>
+          <Field label="Role">
+            <select
+              value={role}
+              onChange={(e) => setRole(e.target.value as RoleOrNone)}
+              className="w-full h-9 px-2 rounded-md border border-border bg-input/60 text-sm focus:outline-none focus:ring-2 focus:ring-ring/40"
+            >
+              <option value="">— No role —</option>
+              {ROLES.map((r) => (
+                <option key={r} value={r}>
+                  {ROLE_LABEL[r]}
+                </option>
+              ))}
+            </select>
+          </Field>
+        </div>
+        <div className="mt-5 flex justify-end gap-2">
+          <button
+            onClick={onCancel}
+            disabled={busy}
+            className="h-9 px-3 rounded-md border border-border text-sm font-medium hover:bg-accent disabled:opacity-50"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={() =>
+              onSubmit({
+                email: email.trim(),
+                name: name.trim(),
+                title: title.trim(),
+                role: role === "" ? null : role,
+              })
+            }
+            disabled={!valid || busy}
+            className="h-9 px-3 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 disabled:opacity-50 inline-flex items-center gap-2"
+          >
+            {busy && <Loader2 className="size-4 animate-spin" />}
+            Create user
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label className="block">
+      <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-1">
+        {label}
+      </div>
+      {children}
+    </label>
+  );
+}
+
+function ConfirmDialog({
+  title,
+  message,
+  confirmLabel,
+  destructive,
+  busy,
+  onCancel,
+  onConfirm,
+}: {
+  title: string;
+  message: string;
+  confirmLabel: string;
+  destructive?: boolean;
+  busy: boolean;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-background/70 backdrop-blur-sm p-4">
+      <div className="w-full max-w-sm rounded-lg border border-border bg-card p-5 shadow-lg">
+        <h2 className="text-base font-semibold">{title}</h2>
+        <p className="text-sm text-muted-foreground mt-2">{message}</p>
+        <div className="mt-5 flex justify-end gap-2">
+          <button
+            onClick={onCancel}
+            disabled={busy}
+            className="h-9 px-3 rounded-md border border-border text-sm font-medium hover:bg-accent disabled:opacity-50"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            disabled={busy}
+            className={cn(
+              "h-9 px-3 rounded-md text-sm font-medium inline-flex items-center gap-2 disabled:opacity-50",
+              destructive
+                ? "bg-destructive text-destructive-foreground hover:opacity-90"
+                : "bg-primary text-primary-foreground hover:opacity-90",
+            )}
+          >
+            {busy && <Loader2 className="size-4 animate-spin" />}
+            {confirmLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TempPasswordDialog({
+  email,
+  password,
+  onClose,
+}: {
+  email: string;
+  password: string;
+  onClose: () => void;
+}) {
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(password);
+      toast.success("Password copied");
+    } catch {
+      toast.error("Copy failed");
+    }
+  };
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-background/70 backdrop-blur-sm p-4">
+      <div className="w-full max-w-md rounded-lg border border-border bg-card p-5 shadow-lg">
+        <h2 className="text-base font-semibold">Temporary password</h2>
+        <p className="text-sm text-muted-foreground mt-2">
+          Share these credentials with {email} securely. They won't be shown again.
+        </p>
+        <div className="mt-4 rounded-md border border-border bg-muted/30 p-3 font-mono text-sm break-all">
+          {password}
+        </div>
+        <div className="mt-5 flex justify-end gap-2">
+          <button
+            onClick={copy}
+            className="h-9 px-3 rounded-md border border-border text-sm font-medium hover:bg-accent inline-flex items-center gap-2"
+          >
+            <Copy className="size-4" /> Copy
+          </button>
+          <button
+            onClick={onClose}
+            className="h-9 px-3 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:opacity-90"
+          >
+            Done
+          </button>
+        </div>
       </div>
     </div>
   );

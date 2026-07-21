@@ -94,3 +94,106 @@ export const setManagedUserRole = createServerFn({ method: "POST" })
 
     return { ok: true as const };
   });
+
+const createUserInput = z.object({
+  email: z.string().email(),
+  name: z.string().min(1).max(120),
+  title: z.string().max(120).optional().default(""),
+  role: z.enum(ROLE_VALUES).nullable(),
+  password: z.string().min(8).max(200).optional(),
+});
+
+function initialsOf(name: string, email: string): string {
+  const src = (name || email).trim();
+  const parts = src.split(/\s+/).filter(Boolean);
+  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+  return src.slice(0, 2).toUpperCase();
+}
+
+export const createManagedUser = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => createUserInput.parse(input))
+  .handler(async ({ data, context }) => {
+    const { data: myRoles, error: roleErr } = await context.supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", context.userId);
+    if (roleErr) throw new Error(roleErr.message);
+    if (!myRoles?.some((r) => r.role === "super_admin")) throw new Error("Forbidden");
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const password =
+      data.password ??
+      `${crypto.randomUUID().replace(/-/g, "")}Aa1!`;
+
+    const { data: created, error: createErr } = await supabaseAdmin.auth.admin.createUser({
+      email: data.email,
+      password,
+      email_confirm: true,
+      user_metadata: {
+        name: data.name,
+        title: data.title ?? "",
+        initials: initialsOf(data.name, data.email),
+      },
+    });
+    if (createErr || !created?.user) {
+      throw new Error(createErr?.message ?? "Failed to create user");
+    }
+
+    const userId = created.user.id;
+
+    // handle_new_user trigger seeds profile + default mentor role.
+    // Upsert to ensure fields are correct, then set the requested role.
+    const { error: profErr } = await supabaseAdmin
+      .from("profiles")
+      .upsert({
+        id: userId,
+        email: data.email,
+        name: data.name,
+        title: data.title ?? "",
+        initials: initialsOf(data.name, data.email),
+      });
+    if (profErr) throw new Error(profErr.message);
+
+    const { error: delRolesErr } = await supabaseAdmin
+      .from("user_roles")
+      .delete()
+      .eq("user_id", userId);
+    if (delRolesErr) throw new Error(delRolesErr.message);
+
+    if (data.role) {
+      const { error: insErr } = await supabaseAdmin
+        .from("user_roles")
+        .insert({ user_id: userId, role: data.role });
+      if (insErr) throw new Error(insErr.message);
+    }
+
+    return { ok: true as const, userId, tempPassword: data.password ? null : password };
+  });
+
+const deleteUserInput = z.object({ userId: z.string().uuid() });
+
+export const deleteManagedUser = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => deleteUserInput.parse(input))
+  .handler(async ({ data, context }) => {
+    const { data: myRoles, error: roleErr } = await context.supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", context.userId);
+    if (roleErr) throw new Error(roleErr.message);
+    if (!myRoles?.some((r) => r.role === "super_admin")) throw new Error("Forbidden");
+
+    if (data.userId === context.userId) {
+      throw new Error("You cannot delete your own account from this screen.");
+    }
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error: delErr } = await supabaseAdmin.auth.admin.deleteUser(data.userId);
+    if (delErr) throw new Error(delErr.message);
+
+    // profiles and user_roles rows cascade via FK on auth.users delete.
+    return { ok: true as const };
+  });
+
