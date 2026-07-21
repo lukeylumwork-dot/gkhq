@@ -601,7 +601,7 @@ export const dutyOverview = (() => {
   return { ...counts, total: goalkeepers.length };
 })();
 
-const STATUSES: Status[] = ["Elite", "First Team", "Development", "Prospect", "Free Agent"];
+const STATUSES: Status[] = ["Tier 1", "Tier 2", "Tier 3", "Tier 4", "Academy", "Free Agent"];
 
 export const stats = {
   totalGks: goalkeepers.length,
