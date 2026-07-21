@@ -561,12 +561,20 @@ export function VoiceNoteField({ onTranscribed, onAudioAttach, draft, onDraftCha
                 <XCircle className="size-3.5 text-muted-foreground mt-0.5 shrink-0" />
                 <div className="text-xs text-foreground">
                   <div className="font-medium">Transcription cancelled</div>
-                  <div className="text-[10px] text-muted-foreground mt-0.5">The audio recording is still saved. Retry whenever you're ready, or save it without a transcript.</div>
+                  <div className="text-[10px] text-muted-foreground mt-0.5">
+                    {cancelledPhaseRef.current !== "idle" && (
+                      <>Stopped during <span className="font-mono uppercase tracking-wider">{cancelledPhaseRef.current}</span>{cancelledElapsedRef.current ? ` at ${cancelledElapsedRef.current}s` : ""}. </>
+                    )}
+                    The audio recording is still saved. Undo to continue where you left off, retry, or save without a transcript.
+                  </div>
                 </div>
               </div>
               <div className="flex flex-wrap gap-1.5">
-                <button type="button" onClick={retry} className="inline-flex items-center gap-1 h-7 px-2 rounded-md bg-primary text-primary-foreground text-[11px] font-medium hover:opacity-90">
-                  <RotateCcw className="size-3" />Retry transcription
+                <button type="button" onClick={undoCancel} className="inline-flex items-center gap-1 h-7 px-2 rounded-md bg-primary text-primary-foreground text-[11px] font-medium hover:opacity-90">
+                  <RotateCcw className="size-3" />Undo cancellation
+                </button>
+                <button type="button" onClick={retry} className="inline-flex items-center gap-1 h-7 px-2 rounded-md border border-border text-[11px] font-medium hover:bg-accent">
+                  Retry from scratch
                 </button>
                 {onAudioAttach && (
                   <button type="button" onClick={() => void saveWithoutTranscript()} disabled={attaching} className="inline-flex items-center gap-1 h-7 px-2 rounded-md border border-border text-[11px] font-medium hover:bg-accent disabled:opacity-50">
