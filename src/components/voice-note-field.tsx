@@ -33,6 +33,9 @@ export function VoiceNoteField({ onTranscribed, onAudioAttach, className }: Prop
   const [recording, setRecording] = useState(false);
   const [busy, setBusy] = useState(false);
   const [transcript, setTranscript] = useState<string | null>(null);
+  const [tokens, setTokens] = useState<Array<{ token: string; confidence: number }>>([]);
+  const [avgConfidence, setAvgConfidence] = useState<number | null>(null);
+  const [reviewed, setReviewed] = useState(false);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [elapsed, setElapsed] = useState(0);
 
@@ -64,6 +67,9 @@ export function VoiceNoteField({ onTranscribed, onAudioAttach, className }: Prop
     if (audioUrl) URL.revokeObjectURL(audioUrl);
     setAudioUrl(null);
     setTranscript(null);
+    setTokens([]);
+    setAvgConfidence(null);
+    setReviewed(false);
     dataUrlRef.current = null;
     blobRef.current = null;
     durationRef.current = 0;
@@ -73,14 +79,19 @@ export function VoiceNoteField({ onTranscribed, onAudioAttach, className }: Prop
 
   const transcribe = async (dataUrl: string) => {
     setBusy(true);
+    setReviewed(false);
     try {
       const result = await run({ data: { audioDataUrl: dataUrl } });
       if (!result.ok) {
         toast.error(result.error);
         setTranscript(null);
+        setTokens([]);
+        setAvgConfidence(null);
       } else {
         setTranscript(result.text);
-        toast.success("Voice note transcribed");
+        setTokens(result.tokens ?? []);
+        setAvgConfidence(result.avgConfidence ?? null);
+        toast.success("Voice note transcribed — review before applying");
       }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Transcription failed");
@@ -88,6 +99,7 @@ export function VoiceNoteField({ onTranscribed, onAudioAttach, className }: Prop
       setBusy(false);
     }
   };
+
 
   const start = async () => {
     reset();
@@ -167,12 +179,38 @@ export function VoiceNoteField({ onTranscribed, onAudioAttach, className }: Prop
   };
 
   const handleApply = (mode: "append" | "replace") => {
+    if (!reviewed) {
+      toast.error("Review the transcript first — tick 'I've reviewed this' below.");
+      return;
+    }
     onTranscribed(transcript ?? "", mode);
     void attachAudio();
   };
 
   const mm = String(Math.floor(elapsed / 60)).padStart(2, "0");
   const ss = String(elapsed % 60).padStart(2, "0");
+
+  // Confidence bucket for a token: high (≥0.85), medium (0.6–0.85), low (<0.6)
+  const bucketOf = (c: number): "high" | "med" | "low" => (c >= 0.85 ? "high" : c >= 0.6 ? "med" : "low");
+  const bucketClass = (b: "high" | "med" | "low") =>
+    b === "low"
+      ? "bg-destructive/25 text-destructive-foreground underline decoration-destructive decoration-wavy underline-offset-2"
+      : b === "med"
+      ? "bg-amber-500/25 text-foreground"
+      : "";
+  const lowCount = tokens.filter((t) => bucketOf(t.confidence) === "low").length;
+  const medCount = tokens.filter((t) => bucketOf(t.confidence) === "med").length;
+  const overallLabel =
+    avgConfidence == null ? null : avgConfidence >= 0.85 ? "High" : avgConfidence >= 0.6 ? "Medium" : "Low";
+  const overallClass =
+    avgConfidence == null
+      ? ""
+      : avgConfidence >= 0.85
+      ? "text-gk-green border-gk-green/40"
+      : avgConfidence >= 0.6
+      ? "text-amber-500 border-amber-500/40"
+      : "text-destructive border-destructive/40";
+
 
   return (
     <div className={`rounded-md border border-dashed border-border bg-accent/10 p-3 space-y-3 ${className ?? ""}`}>
@@ -219,13 +257,54 @@ export function VoiceNoteField({ onTranscribed, onAudioAttach, className }: Prop
             <div className="inline-flex items-center gap-1.5 text-xs text-muted-foreground"><Loader2 className="size-3.5 animate-spin" />Transcribing…</div>
           ) : transcript ? (
             <>
-              <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Transcript</div>
-              <div className="text-xs whitespace-pre-wrap bg-background border border-border rounded-md p-2 max-h-40 overflow-y-auto">{transcript}</div>
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Transcript — review before applying</div>
+                {overallLabel && (
+                  <span className={`inline-flex items-center gap-1 h-5 px-1.5 rounded-md border text-[10px] font-mono uppercase tracking-wider ${overallClass}`}>
+                    {overallLabel} confidence · {Math.round((avgConfidence ?? 0) * 100)}%
+                  </span>
+                )}
+              </div>
+              {tokens.length > 0 ? (
+                <div className="text-xs whitespace-pre-wrap bg-background border border-border rounded-md p-2 max-h-40 overflow-y-auto leading-relaxed">
+                  {tokens.map((t, i) => {
+                    const b = bucketOf(t.confidence);
+                    const cls = bucketClass(b);
+                    return (
+                      <span
+                        key={i}
+                        className={cls ? `rounded-sm px-[1px] ${cls}` : undefined}
+                        title={`Confidence ${(t.confidence * 100).toFixed(0)}%`}
+                      >
+                        {t.token}
+                      </span>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="text-xs whitespace-pre-wrap bg-background border border-border rounded-md p-2 max-h-40 overflow-y-auto">{transcript}</div>
+              )}
+              {tokens.length > 0 && (
+                <div className="flex items-center gap-2 flex-wrap text-[10px] text-muted-foreground">
+                  <span className="inline-flex items-center gap-1"><span className="inline-block size-2 rounded-sm bg-amber-500/50" />Medium ({medCount})</span>
+                  <span className="inline-flex items-center gap-1"><span className="inline-block size-2 rounded-sm bg-destructive/50" />Low ({lowCount})</span>
+                  <span className="opacity-70">Hover a highlighted word to see its score.</span>
+                </div>
+              )}
+              <label className="inline-flex items-center gap-1.5 text-[11px] text-foreground select-none">
+                <input
+                  type="checkbox"
+                  checked={reviewed}
+                  onChange={(e) => setReviewed(e.target.checked)}
+                  className="size-3.5 accent-primary"
+                />
+                I've reviewed the highlighted segments
+              </label>
               <div className="flex flex-wrap gap-1.5">
-                <button type="button" onClick={() => handleApply("append")} className="inline-flex items-center gap-1 h-7 px-2 rounded-md bg-primary text-primary-foreground text-[11px] font-medium hover:opacity-90">
+                <button type="button" disabled={!reviewed} onClick={() => handleApply("append")} className="inline-flex items-center gap-1 h-7 px-2 rounded-md bg-primary text-primary-foreground text-[11px] font-medium hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed">
                   Append to comments
                 </button>
-                <button type="button" onClick={() => handleApply("replace")} className="inline-flex items-center gap-1 h-7 px-2 rounded-md border border-border text-[11px] font-medium hover:bg-accent">
+                <button type="button" disabled={!reviewed} onClick={() => handleApply("replace")} className="inline-flex items-center gap-1 h-7 px-2 rounded-md border border-border text-[11px] font-medium hover:bg-accent disabled:opacity-40 disabled:cursor-not-allowed">
                   Replace comments
                 </button>
                 <button type="button" onClick={() => { navigator.clipboard?.writeText(transcript); toast.success("Copied"); }} className="inline-flex items-center gap-1 h-7 px-2 rounded-md border border-border text-[11px] font-medium hover:bg-accent">
@@ -235,6 +314,7 @@ export function VoiceNoteField({ onTranscribed, onAudioAttach, className }: Prop
                   <RotateCcw className="size-3" />Retry
                 </button>
               </div>
+
               {onAudioAttach && (
                 <div className="text-[11px] mt-1">
                   {attaching ? (

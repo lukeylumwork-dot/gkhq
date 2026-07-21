@@ -125,6 +125,8 @@ export const transcribeVoiceNote = createServerFn({ method: "POST" })
     const form = new FormData();
     form.append("model", "openai/gpt-4o-mini-transcribe");
     form.append("file", new Blob([bytes.buffer.slice(0) as ArrayBuffer], { type: mime }), `voice-note.${ext}`);
+    form.append("response_format", "json");
+    form.append("include[]", "logprobs");
 
     const res = await fetch("https://ai.gateway.lovable.dev/v1/audio/transcriptions", {
       method: "POST",
@@ -140,8 +142,21 @@ export const transcribeVoiceNote = createServerFn({ method: "POST" })
       return { ok: false as const, error: `Transcription failed (${res.status}).` };
     }
 
-    const json = (await res.json()) as { text?: string };
+    const json = (await res.json()) as {
+      text?: string;
+      logprobs?: Array<{ token: string; logprob: number }>;
+    };
     const text = json.text?.trim() ?? "";
     if (!text) return { ok: false as const, error: "No transcription returned." };
-    return { ok: true as const, text };
+
+    const tokens = Array.isArray(json.logprobs)
+      ? json.logprobs
+          .filter((t) => typeof t?.token === "string" && typeof t?.logprob === "number")
+          .map((t) => ({ token: t.token, confidence: Math.max(0, Math.min(1, Math.exp(t.logprob))) }))
+      : [];
+    const avgConfidence = tokens.length
+      ? tokens.reduce((s, t) => s + t.confidence, 0) / tokens.length
+      : null;
+
+    return { ok: true as const, text, tokens, avgConfidence };
   });
