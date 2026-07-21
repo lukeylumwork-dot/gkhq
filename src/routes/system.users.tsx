@@ -499,3 +499,104 @@ function TempPasswordDialog({
     </div>
   );
 }
+
+function EditRoleDialog({
+  user,
+  busy,
+  onCancel,
+  onSubmit,
+}: {
+  user: ManagedUserRow;
+  busy: boolean;
+  onCancel: () => void;
+  onSubmit: (role: Role | null) => void;
+}) {
+  const [role, setRole] = useState<RoleOrNone>(user.role ?? "");
+  const changed = (role === "" ? null : role) !== user.role;
+
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-background/70 backdrop-blur-sm p-4">
+      <div className="w-full max-w-md rounded-lg border border-border bg-card p-5 shadow-lg">
+        <h2 className="text-base font-semibold">Edit roles</h2>
+        <p className="text-xs text-muted-foreground mt-1">
+          {user.name || user.email}
+          {user.email && user.name ? ` · ${user.email}` : ""}
+        </p>
+
+        <div className="mt-4">
+          <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-2">
+            Current role
+          </div>
+          {user.role ? (
+            <span
+              className={cn(
+                "inline-flex h-6 px-2 items-center rounded border text-[10px] uppercase tracking-wider font-medium",
+                ROLE_TONE[user.role],
+              )}
+            >
+              {ROLE_LABEL[user.role]}
+            </span>
+          ) : (
+            <span className="inline-flex h-6 px-2 items-center rounded border border-dashed border-border text-[10px] uppercase tracking-wider font-medium text-muted-foreground">
+              No role
+            </span>
+          )}
+        </div>
+
+        <div className="mt-4">
+          <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-2">
+            Assign role
+          </div>
+          <div className="space-y-1.5">
+            {(["", ...ROLES] as RoleOrNone[]).map((r) => {
+              const id = `role-${r || "none"}`;
+              const label = r === "" ? "No role (revoke access)" : ROLE_LABEL[r];
+              const selected = role === r;
+              return (
+                <label
+                  key={id}
+                  htmlFor={id}
+                  className={cn(
+                    "flex items-center gap-3 rounded-md border px-3 py-2 cursor-pointer text-sm",
+                    selected
+                      ? "border-primary/40 bg-primary/5"
+                      : "border-border hover:bg-accent",
+                  )}
+                >
+                  <input
+                    id={id}
+                    type="radio"
+                    name="edit-role"
+                    value={r}
+                    checked={selected}
+                    onChange={() => setRole(r)}
+                    className="accent-primary"
+                  />
+                  <span className="font-medium">{label}</span>
+                </label>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="mt-5 flex justify-end gap-2">
+          <button
+            onClick={onCancel}
+            disabled={busy}
+            className="h-9 px-3 rounded-md border border-border text-sm font-medium hover:bg-accent disabled:opacity-50"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={() => onSubmit(role === "" ? null : role)}
+            disabled={busy || !changed}
+            className="h-9 px-3 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 disabled:opacity-50 inline-flex items-center gap-2"
+          >
+            {busy && <Loader2 className="size-4 animate-spin" />}
+            Save changes
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
