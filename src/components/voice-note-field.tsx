@@ -152,6 +152,7 @@ export function VoiceNoteField({ onTranscribed, onAudioAttach, draft, onDraftCha
     setAttemptLog([]);
     setCancelled(false);
     setSkipped(false);
+    setRetryAvailableAt(0);
     dataUrlRef.current = null;
     blobRef.current = null;
     durationRef.current = 0;
