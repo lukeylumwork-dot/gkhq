@@ -77,7 +77,6 @@ function GoalkeepersList() {
               <th className="font-medium px-2 py-2.5">League</th>
               <th className="font-medium px-2 py-2.5">Age</th>
               <th className="font-medium px-2 py-2.5">Nationality</th>
-              
               <th className="font-medium px-2 py-2.5">Contract</th>
               <th className="font-medium px-2 py-2.5">Duty of Care</th>
               <th className="font-medium px-4 py-2.5 text-right">Rating</th>
