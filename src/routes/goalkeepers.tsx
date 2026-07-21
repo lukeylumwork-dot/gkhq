@@ -1,7 +1,7 @@
 import { createFileRoute, Link, Outlet, useRouterState } from "@tanstack/react-router";
 import { PageHeader, Card, TierBadge, Avatar, TrafficLight, DutyBadge, StatCard } from "@/components/primitives";
 import { DataSourceBanner } from "@/lib/data-classification";
-import { goalkeepers, formatRelative, dutyStatusForGk, dutyOverview } from "@/lib/mock-data";
+import { goalkeepers, dutyStatusForGk, dutyOverview, DUTY_LABELS, type DutyLevel } from "@/lib/mock-data";
 import { useState } from "react";
 import { withPermission } from "@/components/require-permission";
 
