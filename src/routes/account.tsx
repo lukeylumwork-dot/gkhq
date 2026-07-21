@@ -103,7 +103,7 @@ function AccountPage() {
     .toUpperCase();
 
   return (
-    <div className="mx-auto w-full max-w-xl space-y-5 px-4 sm:px-0">
+    <div className="mx-auto w-full max-w-xl space-y-5">
       <PageHeader title="Account" description="Manage your sign-in credentials." />
 
       <Card className="p-4 relative overflow-hidden before:content-[''] before:absolute before:left-0 before:top-0 before:h-full before:w-[3px] before:bg-primary">
