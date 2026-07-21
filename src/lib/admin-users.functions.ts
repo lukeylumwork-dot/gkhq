@@ -225,6 +225,15 @@ export const resetManagedUserPassword = createServerFn({ method: "POST" })
       throw new Error(updErr?.message ?? "Failed to reset password");
     }
 
+    const { logPasswordChange } = await import(
+      "@/lib/security/password-audit.server"
+    );
+    await logPasswordChange({
+      userId: data.userId,
+      actorId: context.userId,
+      eventType: "admin_reset",
+    });
+
     return { ok: true as const, email: updated.user.email ?? "", tempPassword };
   });
 
