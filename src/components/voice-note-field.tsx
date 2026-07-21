@@ -62,6 +62,7 @@ export function VoiceNoteField({ onTranscribed, onAudioAttach, draft, onDraftCha
   const [attempt, setAttempt] = useState(0);
   const [attemptLog, setAttemptLog] = useState<AttemptLogEntry[]>([]);
   const [cancelled, setCancelled] = useState(false);
+  const [skipped, setSkipped] = useState(false);
   const [restoredFromDraft, setRestoredFromDraft] = useState<boolean>(!!draft?.transcript);
 
   const recorderRef = useRef<MediaRecorder | null>(null);
@@ -122,6 +123,7 @@ export function VoiceNoteField({ onTranscribed, onAudioAttach, draft, onDraftCha
     setAttempt(0);
     setAttemptLog([]);
     setCancelled(false);
+    setSkipped(false);
     dataUrlRef.current = null;
     blobRef.current = null;
     durationRef.current = 0;
@@ -148,6 +150,7 @@ export function VoiceNoteField({ onTranscribed, onAudioAttach, draft, onDraftCha
     setTokens([]);
     setAvgConfidence(null);
     setCancelled(false);
+    setSkipped(false);
     logAttempt("started");
     const controller = new AbortController();
     abortRef.current = controller;
@@ -284,6 +287,28 @@ export function VoiceNoteField({ onTranscribed, onAudioAttach, draft, onDraftCha
     }
   };
 
+  const saveWithoutTranscript = async () => {
+    // Abort any in-flight transcription but keep the audio.
+    abortRef.current?.abort();
+    abortRef.current = null;
+    clearPhaseTimer();
+    setPhase("idle");
+    setErrorMsg(null);
+    setCancelled(false);
+    // Clear any partial transcript so Comments isn't nudged toward stale text.
+    setTranscript(null);
+    setTokens([]);
+    setAvgConfidence(null);
+    setReviewed(false);
+    setSkipped(true);
+    if (onAudioAttach && !attached && blobRef.current) {
+      await attachAudio();
+    }
+    toast.success("Audio saved — type your notes in Comments below");
+  };
+
+
+
   const handleApply = (mode: "append" | "replace") => {
     if (!reviewed) {
       toast.error("Review the transcript first — tick 'I've reviewed this' below.");
@@ -380,9 +405,16 @@ export function VoiceNoteField({ onTranscribed, onAudioAttach, draft, onDraftCha
                     <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Attempt {attempt}</span>
                   )}
                 </div>
-                <button type="button" onClick={cancelTranscription} className="inline-flex items-center gap-1 h-7 px-2 rounded-md border border-border text-[11px] font-medium hover:bg-accent">
-                  <X className="size-3" />Cancel
-                </button>
+                <div className="flex items-center gap-1.5">
+                  {onAudioAttach && (
+                    <button type="button" onClick={() => void saveWithoutTranscript()} className="inline-flex items-center gap-1 h-7 px-2 rounded-md border border-border text-[11px] font-medium hover:bg-accent">
+                      Save without transcript
+                    </button>
+                  )}
+                  <button type="button" onClick={cancelTranscription} className="inline-flex items-center gap-1 h-7 px-2 rounded-md border border-border text-[11px] font-medium hover:bg-accent">
+                    <X className="size-3" />Cancel
+                  </button>
+                </div>
               </div>
               <div className="flex gap-1" aria-hidden>
                 {(["preparing", "uploading", "transcribing"] as const).map((p) => {
@@ -411,6 +443,35 @@ export function VoiceNoteField({ onTranscribed, onAudioAttach, draft, onDraftCha
                 </div>
               )}
             </div>
+          ) : skipped ? (
+            <div className="rounded-md border border-gk-green/40 bg-gk-green/5 p-2.5 space-y-2">
+              <div className="flex items-start gap-2">
+                <CheckCircle2 className="size-3.5 text-gk-green mt-0.5 shrink-0" />
+                <div className="text-xs text-foreground">
+                  <div className="font-medium">Audio saved without transcript</div>
+                  <div className="text-[10px] text-muted-foreground mt-0.5">
+                    {attached
+                      ? "The recording is linked to this report. Type your notes directly into Comments below — you can transcribe later if you want."
+                      : "The recording is kept in this draft. Type your notes directly into Comments below — you can transcribe later if you want."}
+                  </div>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                <button type="button" onClick={retry} className="inline-flex items-center gap-1 h-7 px-2 rounded-md bg-primary text-primary-foreground text-[11px] font-medium hover:opacity-90">
+                  <RotateCcw className="size-3" />Transcribe now
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const ok = window.confirm("Discard this voice note and its saved audio? This cannot be undone.");
+                    if (ok) reset();
+                  }}
+                  className="inline-flex items-center gap-1 h-7 px-2 rounded-md border border-border text-[11px] font-medium hover:bg-accent"
+                >
+                  Discard
+                </button>
+              </div>
+            </div>
           ) : errorMsg ? (
             <div className="rounded-md border border-destructive/40 bg-destructive/5 p-2.5 space-y-2">
               <div className="flex items-start gap-2">
@@ -426,8 +487,8 @@ export function VoiceNoteField({ onTranscribed, onAudioAttach, draft, onDraftCha
                   <RotateCcw className="size-3" />Retry transcription
                 </button>
                 {onAudioAttach && (
-                  <button type="button" onClick={attachAudio} disabled={attached || attaching} className="inline-flex items-center gap-1 h-7 px-2 rounded-md border border-border text-[11px] font-medium hover:bg-accent disabled:opacity-50">
-                    {attached ? "Audio saved" : attaching ? "Saving…" : "Save audio without transcript"}
+                  <button type="button" onClick={() => void saveWithoutTranscript()} disabled={attaching} className="inline-flex items-center gap-1 h-7 px-2 rounded-md border border-border text-[11px] font-medium hover:bg-accent disabled:opacity-50">
+                    {attaching ? "Saving…" : "Save audio without transcript"}
                   </button>
                 )}
                 <button type="button" onClick={reset} className="inline-flex items-center gap-1 h-7 px-2 rounded-md border border-border text-[11px] font-medium hover:bg-accent">
@@ -471,8 +532,8 @@ export function VoiceNoteField({ onTranscribed, onAudioAttach, draft, onDraftCha
                   <RotateCcw className="size-3" />Retry transcription
                 </button>
                 {onAudioAttach && (
-                  <button type="button" onClick={attachAudio} disabled={attached || attaching} className="inline-flex items-center gap-1 h-7 px-2 rounded-md border border-border text-[11px] font-medium hover:bg-accent disabled:opacity-50">
-                    {attached ? "Audio saved" : attaching ? "Saving…" : "Save audio without transcript"}
+                  <button type="button" onClick={() => void saveWithoutTranscript()} disabled={attaching} className="inline-flex items-center gap-1 h-7 px-2 rounded-md border border-border text-[11px] font-medium hover:bg-accent disabled:opacity-50">
+                    {attaching ? "Saving…" : "Save audio without transcript"}
                   </button>
                 )}
                 <button
