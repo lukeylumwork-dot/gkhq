@@ -113,6 +113,7 @@ export function AppShell() {
               <Plus className="size-4" />{primaryAction.label}
             </button>
           )}
+          <ThemeToggle />
           {can("alerts.view") && (
             <div ref={bellRef} className="relative">
               <button onClick={() => setBellOpen((v) => !v)} className="relative size-9 grid place-items-center rounded-md border border-border hover:bg-accent">
