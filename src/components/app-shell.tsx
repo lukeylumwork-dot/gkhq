@@ -193,7 +193,7 @@ export function AppShell() {
           <div className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm" onClick={() => setNavOpen(false)} />
           <aside className="fixed inset-y-0 right-0 z-50 w-72 flex flex-col border-l border-sidebar-border bg-sidebar shadow-2xl">
             <div className="flex items-center gap-2.5 px-5 h-14 border-b border-sidebar-border">
-              <img src="/gkhq-icon.svg" alt="GKHQ" width={28} height={28} className="size-7 shrink-0" />
+              <BrandMark className="size-7 shrink-0 text-foreground/80" title="Mentor Hub" />
               <div className="flex flex-col leading-tight min-w-0 flex-1">
                 <span className="text-sm font-semibold tracking-tight truncate">{user.name}</span>
                 <span className="text-[10px] uppercase tracking-wider text-muted-foreground truncate">{ROLE_LABEL[user.role]}</span>
