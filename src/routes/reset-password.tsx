@@ -44,7 +44,7 @@ function ResetPasswordPage() {
     // allow the reset form.
     (async () => {
       const hash = typeof window !== "undefined" ? window.location.hash : "";
-      const isRecoveryHash = hash.includes("type=recovery");
+      const isRecoveryHash = hash.includes("type=recovery") || hash.includes("type=invite");
       const { data } = await supabase.auth.getSession();
       if (settled) return;
       if (isRecoveryHash || data.session) {
