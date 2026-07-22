@@ -10,10 +10,10 @@ const projectRef = import.meta.env.VITE_SUPABASE_PROJECT_ID ?? "project-ref-unse
 
 export default defineMcp({
   name: "gkhq-mcp",
-  title: "GKHQ",
+  title: "Mentor Hub",
   version: "0.1.0",
   instructions:
-    "Tools for GKHQ, a goalkeeper performance management platform. Use `whoami` to confirm the signed-in mentor, and `list_match_reports` to browse recent match reports the caller is allowed to see. All reads respect the app's per-user access controls.",
+    "Tools for Mentor Hub, a goalkeeper performance management platform. Use `whoami` to confirm the signed-in mentor, and `list_match_reports` to browse recent match reports the caller is allowed to see. All reads respect the app's per-user access controls.",
   auth: auth.oauth.issuer({
     issuer: `https://${projectRef}.supabase.co/auth/v1`,
     acceptedAudiences: "authenticated",
