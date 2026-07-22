@@ -324,6 +324,22 @@ function SystemUsersPage() {
         />
       )}
 
+      {showInvite && (
+        <InviteUserDialog
+          busy={inviteMutation.isPending}
+          onCancel={() => setShowInvite(false)}
+          onSubmit={(vals) => inviteMutation.mutate(vals)}
+        />
+      )}
+
+      {inviteLink && (
+        <InviteLinkDialog
+          email={inviteLink.email}
+          url={inviteLink.url}
+          onClose={() => setInviteLink(null)}
+        />
+      )}
+
       {editUser && (
         <EditRoleDialog
           user={editUser}
