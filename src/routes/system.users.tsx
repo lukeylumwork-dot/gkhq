@@ -175,12 +175,20 @@ function SystemUsersPage() {
             Add, remove, and assign roles. Changes take effect on the user's next sign-in.
           </p>
         </div>
-        <button
-          onClick={() => setShowAdd(true)}
-          className="inline-flex h-9 px-3 items-center gap-2 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:opacity-90"
-        >
-          <UserPlus className="size-4" /> Add user
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowInvite(true)}
+            className="inline-flex h-9 px-3 items-center gap-2 rounded-md border border-border text-sm font-medium hover:bg-accent"
+          >
+            <Mail className="size-4" /> Invite user
+          </button>
+          <button
+            onClick={() => setShowAdd(true)}
+            className="inline-flex h-9 px-3 items-center gap-2 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:opacity-90"
+          >
+            <UserPlus className="size-4" /> Add user
+          </button>
+        </div>
       </div>
 
       <div className="relative max-w-sm">
