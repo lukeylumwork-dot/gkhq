@@ -40,8 +40,8 @@ export const Route = createFileRoute("/account")({
   component: AccountPage,
   head: () => ({
     meta: [
-      { title: "Account · GK.HQ" },
-      { name: "description", content: "Manage your GK.HQ account and password." },
+      { title: "Account · Mentor Hub" },
+      { name: "description", content: "Manage your Mentor Hub account and password." },
     ],
   }),
 });
