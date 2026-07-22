@@ -172,6 +172,75 @@ export const createManagedUser = createServerFn({ method: "POST" })
     return { ok: true as const, userId, tempPassword: data.password ? null : password };
   });
 
+const inviteUserInput = z.object({
+  email: z.string().email(),
+  name: z.string().min(1).max(120),
+  title: z.string().max(120).optional().default(""),
+  role: z.enum(ROLE_VALUES).nullable(),
+  redirectTo: z.string().url(),
+});
+
+export const inviteManagedUser = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => inviteUserInput.parse(input))
+  .handler(async ({ data, context }) => {
+    const { data: myRoles, error: roleErr } = await context.supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", context.userId);
+    if (roleErr) throw new Error(roleErr.message);
+    if (!myRoles?.some((r) => r.role === "super_admin")) throw new Error("Forbidden");
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const initials = initialsOf(data.name, data.email);
+    const { data: link, error: linkErr } = await supabaseAdmin.auth.admin.generateLink({
+      type: "invite",
+      email: data.email,
+      options: {
+        redirectTo: data.redirectTo,
+        data: { name: data.name, title: data.title ?? "", initials },
+      },
+    });
+    if (linkErr || !link?.user) {
+      throw new Error(linkErr?.message ?? "Failed to generate invite link");
+    }
+
+    const userId = link.user.id;
+
+    // Trigger seeded a profile with mentor role; upsert canonical fields and set requested role.
+    const { error: profErr } = await supabaseAdmin
+      .from("profiles")
+      .upsert({
+        id: userId,
+        email: data.email,
+        name: data.name,
+        title: data.title ?? "",
+        initials,
+      });
+    if (profErr) throw new Error(profErr.message);
+
+    const { error: delRolesErr } = await supabaseAdmin
+      .from("user_roles")
+      .delete()
+      .eq("user_id", userId);
+    if (delRolesErr) throw new Error(delRolesErr.message);
+
+    if (data.role) {
+      const { error: insErr } = await supabaseAdmin
+        .from("user_roles")
+        .insert({ user_id: userId, role: data.role });
+      if (insErr) throw new Error(insErr.message);
+    }
+
+    return {
+      ok: true as const,
+      userId,
+      email: data.email,
+      inviteLink: link.properties?.action_link ?? "",
+    };
+  });
+
 const deleteUserInput = z.object({ userId: z.string().uuid() });
 
 export const deleteManagedUser = createServerFn({ method: "POST" })
